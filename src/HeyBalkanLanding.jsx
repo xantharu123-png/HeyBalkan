@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Heart, Users, Shield, Check, Send, Instagram, Globe, Loader2 } from 'lucide-react';
 import { translations, countryList, countryListFull } from './translations';
 import { supabase } from './supabase';
+import PostSignup from './PostSignup';
 
 export default function HeyBalkanLanding() {
   const [email, setEmail] = useState('');
@@ -11,6 +12,14 @@ export default function HeyBalkanLanding() {
   const [langMenuOpen, setLangMenuOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [referredBy, setReferredBy] = useState('');
+
+  // Check for referral code in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) setReferredBy(ref);
+  }, []);
 
   const t = translations[lang];
 
@@ -22,13 +31,21 @@ export default function HeyBalkanLanding() {
     setError('');
 
     try {
+      const insertData = {
+        email: email.toLowerCase().trim(),
+        origin: origin || null,
+        language: lang,
+      };
+      if (referredBy) insertData.referred_by = referredBy;
+
       const { error: dbError } = await supabase
         .from('waitlist')
-        .insert([{
-          email: email.toLowerCase().trim(),
-          origin: origin || null,
-          language: lang,
-        }]);
+        .insert([insertData]);
+
+      // If referred, increment referrer's count
+      if (!dbError && referredBy) {
+        await supabase.rpc('increment_referral_count', { ref_code: referredBy }).catch(() => {});
+      }
 
       if (dbError) {
         if (dbError.code === '23505') {
@@ -57,6 +74,11 @@ export default function HeyBalkanLanding() {
     { code: 'sr', label: 'SR', full: 'Srpski / Hrvatski' },
     { code: 'sq', label: 'SQ', full: 'Shqip' },
   ];
+
+  // Show post-signup experience after successful registration
+  if (submitted) {
+    return <PostSignup email={email} lang={lang} supabase={supabase} />;
+  }
 
   return (
     <div className="min-h-screen bg-stone-50 font-sans">
