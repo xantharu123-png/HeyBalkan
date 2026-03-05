@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Heart, Users, Shield, Check, Send, Instagram, Globe } from 'lucide-react';
+import { Heart, Users, Shield, Check, Send, Instagram, Globe, Loader2 } from 'lucide-react';
 import { translations, countryList, countryListFull } from './translations';
+import { supabase } from './supabase';
 
 export default function HeyBalkanLanding() {
   const [email, setEmail] = useState('');
@@ -8,13 +9,45 @@ export default function HeyBalkanLanding() {
   const [origin, setOrigin] = useState('');
   const [lang, setLang] = useState('de');
   const [langMenuOpen, setLangMenuOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const t = translations[lang];
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (email) {
-      setSubmitted(true);
+    if (!email) return;
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const { error: dbError } = await supabase
+        .from('waitlist')
+        .insert([{
+          email: email.toLowerCase().trim(),
+          origin: origin || null,
+          language: lang,
+        }]);
+
+      if (dbError) {
+        if (dbError.code === '23505') {
+          // Email already exists - still show success
+          setSubmitted(true);
+        } else {
+          throw dbError;
+        }
+      } else {
+        setSubmitted(true);
+      }
+    } catch (err) {
+      console.error('Signup error:', err);
+      setError(lang === 'de' ? 'Etwas ist schiefgelaufen. Bitte versuche es nochmal.'
+        : lang === 'en' ? 'Something went wrong. Please try again.'
+        : lang === 'sr' ? 'Nesto nije u redu. Pokusaj ponovo.'
+        : 'Dicka shkoi keq. Provo perseri.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -119,11 +152,13 @@ export default function HeyBalkanLanding() {
                 />
                 <button
                   type="submit"
-                  className="bg-white text-indigo-600 px-8 py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all flex items-center justify-center gap-2 whitespace-nowrap"
+                  disabled={loading}
+                  className="bg-white text-indigo-600 px-8 py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-70 disabled:scale-100"
                 >
-                  {t.hero.submitBtn} <Send size={18} />
+                  {loading ? <Loader2 size={18} className="animate-spin" /> : <>{t.hero.submitBtn} <Send size={18} /></>}
                 </button>
               </form>
+              {error && <p className="text-red-200 text-sm mt-3">{error}</p>}
 
               <div className="mt-5">
                 <p className="text-white/70 text-sm mb-3">{t.hero.originQuestion}</p>
@@ -307,9 +342,10 @@ export default function HeyBalkanLanding() {
               />
               <button
                 type="submit"
-                className="bg-white text-indigo-600 px-8 py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all whitespace-nowrap"
+                disabled={loading}
+                className="bg-white text-indigo-600 px-8 py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all whitespace-nowrap disabled:opacity-70 disabled:scale-100"
               >
-                {t.cta.submitBtn} 🚀
+                {loading ? <Loader2 size={18} className="animate-spin" /> : <>{t.cta.submitBtn} 🚀</>}
               </button>
             </form>
           ) : (
