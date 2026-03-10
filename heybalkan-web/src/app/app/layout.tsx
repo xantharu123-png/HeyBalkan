@@ -4,11 +4,12 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useLanguage } from '@/hooks/useLanguage';
-import { Flame, Heart, MessageCircle, User } from 'lucide-react';
+import { Flame, Heart, MessageCircle, User, Users } from 'lucide-react';
 
 const NAV_ITEMS = [
   { key: 'discover', href: '/app/discover', icon: Flame, labelKey: 'discover' },
   { key: 'matches', href: '/app/matches', icon: Heart, labelKey: 'matches' },
+  { key: 'porodica', href: '/app/porodica', icon: Users, labelKey: 'porodica' },
   { key: 'chat', href: '/app/chat', icon: MessageCircle, labelKey: 'chat' },
   { key: 'profile', href: '/app/profile', icon: User, labelKey: 'profile' },
 ];
