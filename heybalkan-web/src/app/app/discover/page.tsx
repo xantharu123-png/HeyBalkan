@@ -42,6 +42,14 @@ export default function DiscoverPage() {
   const [userId, setUserId] = useState<string>('');
 
   const loadProfiles = useCallback(async (uid: string) => {
+    // 1. Eigenes Profil laden fuer looking_for + gender Filter
+    const { data: myProfile } = await supabase
+      .from('profiles')
+      .select('gender, looking_for')
+      .eq('id', uid)
+      .single();
+
+    // 2. Bereits geswipte Profile ausschliessen
     const { data: swipedIds } = await supabase
       .from('swipes')
       .select('swiped_id')
@@ -49,12 +57,27 @@ export default function DiscoverPage() {
 
     const exclude = [uid, ...(swipedIds?.map(s => s.swiped_id) || [])];
 
-    const { data } = await supabase
+    // 3. Query mit Gender-Filter basierend auf looking_for
+    let query = supabase
       .from('profiles')
       .select('*')
       .not('id', 'in', `(${exclude.join(',')})`)
-      .eq('onboarding_complete', true)
-      .limit(20);
+      .eq('onboarding_complete', true);
+
+    // Filter: Zeige nur Profile die zum looking_for passen
+    if (myProfile?.looking_for === 'female') {
+      query = query.eq('gender', 'female');
+    } else if (myProfile?.looking_for === 'male') {
+      query = query.eq('gender', 'male');
+    }
+    // 'both' = kein Gender-Filter
+
+    // Auch umgekehrt: nur Profile anzeigen die MICH auch suchen koennten
+    if (myProfile?.gender) {
+      query = query.or(`looking_for.eq.${myProfile.gender},looking_for.eq.both`);
+    }
+
+    const { data } = await query.limit(20);
 
     setProfiles(data || []);
     setCurrentIndex(0);
