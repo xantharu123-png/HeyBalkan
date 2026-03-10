@@ -22,6 +22,10 @@ interface Profile {
   spoken_languages: string[];
   relationship_goal: string;
   religion: string | null;
+  preferred_age_min: number;
+  preferred_age_max: number;
+  preferred_religion: string;
+  preferred_origins: string[];
 }
 
 function getAge(bd: string) {
@@ -55,6 +59,11 @@ export default function ProfilePage() {
   const [lookingFor, setLookingFor] = useState('');
   const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
   const [newPhotos, setNewPhotos] = useState<{ file: File; preview: string }[]>([]);
+  // Preferences
+  const [prefAgeMin, setPrefAgeMin] = useState(18);
+  const [prefAgeMax, setPrefAgeMax] = useState(50);
+  const [prefReligion, setPrefReligion] = useState('egal');
+  const [prefOrigins, setPrefOrigins] = useState<string[]>([]);
 
   useEffect(() => {
     async function load() {
@@ -86,6 +95,16 @@ export default function ProfilePage() {
     setLookingFor(p.looking_for || '');
     setExistingPhotos(p.photos || []);
     setNewPhotos([]);
+    setPrefAgeMin(p.preferred_age_min || 18);
+    setPrefAgeMax(p.preferred_age_max || 50);
+    setPrefReligion(p.preferred_religion || 'egal');
+    setPrefOrigins(p.preferred_origins || []);
+  };
+
+  const togglePrefOrigin = (code: string) => {
+    setPrefOrigins(prev =>
+      prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]
+    );
   };
 
   const startEditing = () => {
@@ -164,6 +183,10 @@ export default function ProfilePage() {
         relationship_goal: relationshipGoal,
         looking_for: lookingFor || null,
         photos: allPhotos,
+        preferred_age_min: prefAgeMin,
+        preferred_age_max: prefAgeMax,
+        preferred_religion: prefReligion,
+        preferred_origins: prefOrigins,
       })
       .eq('id', profile.id);
 
@@ -291,6 +314,33 @@ export default function ProfilePage() {
               <span className="text-slate-300">{profile.religion}</span>
             </div>
           )}
+        </div>
+
+        {/* Preferences */}
+        <div className="px-6 py-5 border-b border-slate-800 space-y-3">
+          <h3 className="text-white font-semibold">{t('preferences')}</h3>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-slate-400">🎂</span>
+            <span className="text-slate-300">{t('ageRange')}: {profile.preferred_age_min || 18} – {profile.preferred_age_max || 50} {t('years')}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-slate-400">🙏</span>
+            <span className="text-slate-300">
+              {t('preferredReligion')}: {(profile.preferred_religion === 'egal' || !profile.preferred_religion) ? t('noPreference') : profile.preferred_religion}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-slate-400">🌍</span>
+            <span className="text-slate-300">
+              {t('preferredOrigin')}: {(!profile.preferred_origins || profile.preferred_origins.length === 0)
+                ? t('allCountries')
+                : profile.preferred_origins.map(code => {
+                    const c = COUNTRIES.find(x => x.code === code);
+                    return c ? `${c.flag} ${c.name}` : code;
+                  }).join(', ')
+              }
+            </span>
+          </div>
         </div>
 
         {/* Language */}
@@ -557,6 +607,103 @@ export default function ProfilePage() {
                 {r}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* ── PREFERENCES SECTION ── */}
+        <div className="border-t border-slate-700 pt-8">
+          <h2 className="text-xl font-bold text-white mb-1">{t('preferences')}</h2>
+          <p className="text-slate-400 text-sm mb-6">{t('preferencesHint')}</p>
+
+          {/* Age Range */}
+          <div className="mb-6">
+            <label className="block text-slate-200 font-semibold mb-3">{t('ageRange')}</label>
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <label className="block text-slate-400 text-xs mb-1">{t('ageFrom')}</label>
+                <input
+                  type="number"
+                  min={18}
+                  max={99}
+                  value={prefAgeMin}
+                  onChange={(e) => setPrefAgeMin(Math.max(18, parseInt(e.target.value) || 18))}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-center text-lg font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <span className="text-slate-500 text-2xl font-light mt-5">–</span>
+              <div className="flex-1">
+                <label className="block text-slate-400 text-xs mb-1">{t('ageTo')}</label>
+                <input
+                  type="number"
+                  min={18}
+                  max={99}
+                  value={prefAgeMax}
+                  onChange={(e) => setPrefAgeMax(Math.min(99, parseInt(e.target.value) || 50))}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-center text-lg font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Religion Preference */}
+          <div className="mb-6">
+            <label className="block text-slate-200 font-semibold mb-3">{t('preferredReligion')}</label>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setPrefReligion('egal')}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                  prefReligion === 'egal'
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-slate-800 text-slate-300 border border-slate-700 hover:border-slate-500'
+                }`}
+              >
+                🌍 {t('noPreference')}
+              </button>
+              {RELIGIONS.filter(r => r !== 'Keine Angabe').map(r => (
+                <button
+                  key={r}
+                  onClick={() => setPrefReligion(r)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                    prefReligion === r
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-slate-800 text-slate-300 border border-slate-700 hover:border-slate-500'
+                  }`}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Origin Preference */}
+          <div>
+            <label className="block text-slate-200 font-semibold mb-2">{t('preferredOrigin')}</label>
+            <p className="text-slate-400 text-xs mb-3">
+              {prefOrigins.length === 0 ? t('allCountries') : `${prefOrigins.length} ${t('selectedCountries')}`}
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {COUNTRIES.map(c => (
+                <button
+                  key={c.code}
+                  onClick={() => togglePrefOrigin(c.code)}
+                  className={`py-3 px-4 rounded-xl text-left font-medium transition text-sm ${
+                    prefOrigins.includes(c.code)
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-slate-800 text-slate-300 border border-slate-700 hover:border-slate-500'
+                  }`}
+                >
+                  {c.flag} {c.name}
+                </button>
+              ))}
+            </div>
+            {prefOrigins.length > 0 && (
+              <button
+                onClick={() => setPrefOrigins([])}
+                className="mt-2 text-sm text-indigo-400 hover:text-indigo-300"
+              >
+                ↩ {t('allCountries')}
+              </button>
+            )}
           </div>
         </div>
 

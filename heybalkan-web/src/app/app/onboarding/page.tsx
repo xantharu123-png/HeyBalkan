@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { useLanguage } from '@/hooks/useLanguage';
 import { COUNTRIES, DACH_COUNTRIES, SPOKEN_LANGUAGES, RELIGIONS, RELATIONSHIP_GOALS } from '@/lib/constants';
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -17,17 +17,28 @@ export default function OnboardingPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Step 1: Basics
   const [firstName, setFirstName] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [gender, setGender] = useState('');
   const [lookingFor, setLookingFor] = useState('');
+  // Step 2: Origin + Languages
   const [originCountry, setOriginCountry] = useState('');
   const [spokenLanguages, setSpokenLanguages] = useState<string[]>([]);
+  // Step 3: City + DACH Country
   const [city, setCity] = useState('');
   const [livingCountry, setLivingCountry] = useState('');
+  // Step 4: Religion + Goal
   const [religion, setReligion] = useState('');
   const [relationshipGoal, setRelationshipGoal] = useState('');
+  // Step 5: Preferences (NEW)
+  const [prefAgeMin, setPrefAgeMin] = useState(18);
+  const [prefAgeMax, setPrefAgeMax] = useState(50);
+  const [prefReligion, setPrefReligion] = useState('egal');
+  const [prefOrigins, setPrefOrigins] = useState<string[]>([]);
+  // Step 6: Photos
   const [photos, setPhotos] = useState<{ file: File; preview: string }[]>([]);
+  // Step 7: Bio
   const [bio, setBio] = useState('');
 
   useEffect(() => {
@@ -43,17 +54,20 @@ export default function OnboardingPage() {
     );
   };
 
+  const togglePrefOrigin = (code: string) => {
+    setPrefOrigins(prev =>
+      prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]
+    );
+  };
+
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-
     Array.from(files).forEach(file => {
       if (photos.length >= 6) return;
       const preview = URL.createObjectURL(file);
       setPhotos(prev => [...prev, { file, preview }]);
     });
-
-    // Reset input so same file can be selected again
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -70,8 +84,9 @@ export default function OnboardingPage() {
       case 2: return originCountry && spokenLanguages.length > 0;
       case 3: return city.trim() && livingCountry;
       case 4: return relationshipGoal;
-      case 5: return photos.length >= 1;
-      case 6: return true;
+      case 5: return true; // Preferences sind optional
+      case 6: return photos.length >= 1;
+      case 7: return true;
       default: return false;
     }
   };
@@ -115,6 +130,10 @@ export default function OnboardingPage() {
       relationship_goal: relationshipGoal,
       bio: bio.trim() || null,
       photos: photoUrls,
+      preferred_age_min: prefAgeMin,
+      preferred_age_max: prefAgeMax,
+      preferred_religion: prefReligion,
+      preferred_origins: prefOrigins,
       onboarding_complete: true,
     });
 
@@ -330,8 +349,110 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 5: Photos - REAL UPLOAD */}
+        {/* Step 5: Preferences - AGE, RELIGION, ORIGIN */}
         {step === 5 && (
+          <div className="space-y-8">
+            <div>
+              <h2 className="text-xl font-bold text-white mb-1">{t('preferences')}</h2>
+              <p className="text-slate-400 text-sm">{t('preferencesHint')}</p>
+            </div>
+
+            {/* Age Range */}
+            <div>
+              <label className="block text-slate-200 font-semibold mb-3">{t('ageRange')}</label>
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <label className="block text-slate-400 text-xs mb-1">{t('ageFrom')}</label>
+                  <input
+                    type="number"
+                    min={18}
+                    max={99}
+                    value={prefAgeMin}
+                    onChange={(e) => setPrefAgeMin(Math.max(18, parseInt(e.target.value) || 18))}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-center text-lg font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <span className="text-slate-500 text-2xl font-light mt-5">–</span>
+                <div className="flex-1">
+                  <label className="block text-slate-400 text-xs mb-1">{t('ageTo')}</label>
+                  <input
+                    type="number"
+                    min={18}
+                    max={99}
+                    value={prefAgeMax}
+                    onChange={(e) => setPrefAgeMax(Math.min(99, parseInt(e.target.value) || 50))}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-center text-lg font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+              <p className="text-slate-500 text-xs mt-2 text-center">{prefAgeMin} – {prefAgeMax} {t('years')}</p>
+            </div>
+
+            {/* Religion Preference */}
+            <div>
+              <label className="block text-slate-200 font-semibold mb-3">{t('preferredReligion')}</label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setPrefReligion('egal')}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                    prefReligion === 'egal'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-slate-800 text-slate-300 border border-slate-700 hover:border-slate-500'
+                  }`}
+                >
+                  🌍 {t('noPreference')}
+                </button>
+                {RELIGIONS.filter(r => r !== 'Keine Angabe').map(r => (
+                  <button
+                    key={r}
+                    onClick={() => setPrefReligion(r)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                      prefReligion === r
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-800 text-slate-300 border border-slate-700 hover:border-slate-500'
+                    }`}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Origin Preference */}
+            <div>
+              <label className="block text-slate-200 font-semibold mb-2">{t('preferredOrigin')}</label>
+              <p className="text-slate-400 text-xs mb-3">
+                {prefOrigins.length === 0 ? t('allCountries') : `${prefOrigins.length} ${t('selectedCountries')}`}
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {COUNTRIES.map(c => (
+                  <button
+                    key={c.code}
+                    onClick={() => togglePrefOrigin(c.code)}
+                    className={`py-3 px-4 rounded-xl text-left font-medium transition text-sm ${
+                      prefOrigins.includes(c.code)
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-800 text-slate-300 border border-slate-700 hover:border-slate-500'
+                    }`}
+                  >
+                    {c.flag} {c.name}
+                  </button>
+                ))}
+              </div>
+              {prefOrigins.length > 0 && (
+                <button
+                  onClick={() => setPrefOrigins([])}
+                  className="mt-2 text-sm text-indigo-400 hover:text-indigo-300"
+                >
+                  ↩ {t('allCountries')}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Step 6: Photos */}
+        {step === 6 && (
           <div className="space-y-4">
             <label className="block text-slate-200 font-semibold">{t('uploadPhotos')}</label>
             <p className="text-slate-400 text-sm">{t('photosHint')}</p>
@@ -346,14 +467,9 @@ export default function OnboardingPage() {
             />
 
             <div className="grid grid-cols-3 gap-3">
-              {/* Uploaded photos */}
               {photos.map((photo, i) => (
                 <div key={i} className="relative aspect-[3/4] rounded-xl overflow-hidden group">
-                  <img
-                    src={photo.preview}
-                    alt={`Foto ${i + 1}`}
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={photo.preview} alt={`Foto ${i + 1}`} className="w-full h-full object-cover" />
                   <button
                     onClick={() => removePhoto(i)}
                     className="absolute top-1.5 right-1.5 w-7 h-7 bg-black/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition hover:bg-red-500"
@@ -367,8 +483,6 @@ export default function OnboardingPage() {
                   )}
                 </div>
               ))}
-
-              {/* Add photo button */}
               {photos.length < 6 && (
                 <button
                   onClick={() => fileInputRef.current?.click()}
@@ -392,8 +506,8 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 6: Bio */}
-        {step === 6 && (
+        {/* Step 7: Bio */}
+        {step === 7 && (
           <div className="space-y-4">
             <label className="block text-slate-200 font-semibold">{t('writeBio')}</label>
             <p className="text-slate-400 text-sm">Erzaehl etwas ueber dich – was machst du gerne, was ist dir wichtig?</p>

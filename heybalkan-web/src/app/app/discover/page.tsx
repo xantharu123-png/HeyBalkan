@@ -42,10 +42,10 @@ export default function DiscoverPage() {
   const [userId, setUserId] = useState<string>('');
 
   const loadProfiles = useCallback(async (uid: string) => {
-    // 1. Eigenes Profil laden fuer looking_for + gender Filter
+    // 1. Eigenes Profil laden mit allen Preferences
     const { data: myProfile } = await supabase
       .from('profiles')
-      .select('gender, looking_for')
+      .select('gender, looking_for, birth_date, preferred_age_min, preferred_age_max, preferred_religion, preferred_origins')
       .eq('id', uid)
       .single();
 
@@ -70,16 +70,41 @@ export default function DiscoverPage() {
     } else if (myProfile?.looking_for === 'male') {
       query = query.eq('gender', 'male');
     }
-    // 'both' = kein Gender-Filter
 
     // Auch umgekehrt: nur Profile anzeigen die MICH auch suchen koennten
     if (myProfile?.gender) {
       query = query.or(`looking_for.eq.${myProfile.gender},looking_for.eq.both`);
     }
 
-    const { data } = await query.limit(20);
+    // Religion-Preference: wenn nicht 'egal', nur passende Religion anzeigen
+    if (myProfile?.preferred_religion && myProfile.preferred_religion !== 'egal') {
+      query = query.eq('religion', myProfile.preferred_religion);
+    }
 
-    setProfiles(data || []);
+    // Herkunfts-Preference: wenn Laender ausgewaehlt, nur diese anzeigen
+    if (myProfile?.preferred_origins && myProfile.preferred_origins.length > 0) {
+      query = query.in('origin_country', myProfile.preferred_origins);
+    }
+
+    const { data } = await query.limit(50);
+
+    // Client-side Alters-Filter (braucht Berechnung aus birth_date)
+    let filtered = data || [];
+    if (myProfile?.preferred_age_min || myProfile?.preferred_age_max) {
+      const minAge = myProfile.preferred_age_min || 18;
+      const maxAge = myProfile.preferred_age_max || 99;
+      const now = new Date();
+
+      filtered = filtered.filter((p: { birth_date: string }) => {
+        const bd = new Date(p.birth_date);
+        let age = now.getFullYear() - bd.getFullYear();
+        const m = now.getMonth() - bd.getMonth();
+        if (m < 0 || (m === 0 && now.getDate() < bd.getDate())) age--;
+        return age >= minAge && age <= maxAge;
+      });
+    }
+
+    setProfiles(filtered);
     setCurrentIndex(0);
     setLoading(false);
   }, []);
