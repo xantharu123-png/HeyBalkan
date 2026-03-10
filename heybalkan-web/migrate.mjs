@@ -21,8 +21,15 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Database connection - env variable or hardcoded fallback
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://postgres:Tisiti123.$@db.detmafncymcheenmtkny.supabase.co:5432/postgres';
+// Database connection - individual params to avoid special char issues
+const DB_CONFIG = {
+  host: 'db.detmafncymcheenmtkny.supabase.co',
+  port: 5432,
+  database: 'postgres',
+  user: 'postgres',
+  password: 'Tisiti123.$',
+  ssl: { rejectUnauthorized: false },
+};
 
 // Migration files in der richtigen Reihenfolge
 const MIGRATION_FILES = [
@@ -45,10 +52,7 @@ CREATE TABLE IF NOT EXISTS public._migrations (
 async function run() {
   console.log('\n\x1b[36m🚀 Hey Balkan - Migration Runner\x1b[0m\n');
 
-  const client = new pg.Client({
-    connectionString: DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
-  });
+  const client = new pg.Client(DB_CONFIG);
 
   try {
     await client.connect();
