@@ -20,14 +20,33 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    async function checkAuth() {
+      const { data: { session } } = await supabase.auth.getSession();
+
       if (!session) {
         router.replace('/auth/login');
-      } else {
-        setAuthChecked(true);
+        return;
       }
-    });
-  }, [router]);
+
+      // Check if profile exists (onboarding done)
+      if (pathname !== '/app/onboarding') {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('onboarding_complete')
+          .eq('id', session.user.id)
+          .single();
+
+        if (!profile || !profile.onboarding_complete) {
+          router.replace('/app/onboarding');
+          return;
+        }
+      }
+
+      setAuthChecked(true);
+    }
+
+    checkAuth();
+  }, [router, pathname]);
 
   if (!authChecked) {
     return (
