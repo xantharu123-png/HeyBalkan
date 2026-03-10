@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X, Heart, ChevronRight, Users, Inbox, ArrowLeft, Send, SkipForward, Trash2 } from 'lucide-react';
+import { Plus, X, Heart, ChevronRight, Users, Inbox, ArrowLeft, Send, SkipForward, Trash2, Share2, Copy, Check } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useLanguage } from '@/hooks/useLanguage';
 import { COUNTRIES } from '@/lib/constants';
@@ -12,6 +12,7 @@ interface FamilyMember {
   name: string;
   relation_type: string;
   photo: string | null;
+  invite_code: string;
   created_at: string;
 }
 
@@ -91,6 +92,8 @@ export default function PorodicaPage() {
   const [showMessageInput, setShowMessageInput] = useState(false);
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
   const [showSentToast, setShowSentToast] = useState(false);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [expandedMember, setExpandedMember] = useState<string | null>(null);
 
   const loadData = useCallback(async (uid: string) => {
     // Load family members
@@ -164,6 +167,46 @@ export default function PorodicaPage() {
     setSaving(false);
     setViewMode('dashboard');
     loadData(userId);
+  };
+
+  // Copy invite link
+  const copyInviteLink = async (member: FamilyMember) => {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const link = `${baseUrl}/porodica/${member.invite_code}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopiedCode(member.id);
+      setTimeout(() => setCopiedCode(null), 2000);
+    } catch {
+      // Fallback
+      const input = document.createElement('input');
+      input.value = link;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      document.body.removeChild(input);
+      setCopiedCode(member.id);
+      setTimeout(() => setCopiedCode(null), 2000);
+    }
+  };
+
+  // Share invite link via native share
+  const shareInviteLink = async (member: FamilyMember) => {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const link = `${baseUrl}/porodica/${member.invite_code}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Hey Balkan - Porodica',
+          text: `Hey ${member.name}! Swipe fuer mich auf Hey Balkan:`,
+          url: link,
+        });
+      } catch {
+        // User cancelled
+      }
+    } else {
+      copyInviteLink(member);
+    }
   };
 
   // Remove family member
@@ -659,32 +702,78 @@ export default function PorodicaPage() {
         ) : (
           <div className="space-y-3">
             {familyMembers.map(member => (
-              <div
-                key={member.id}
-                className="bg-slate-800 rounded-2xl p-4 flex items-center justify-between"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-purple-600/20 flex items-center justify-center">
-                    <span className="text-2xl">{RELATION_EMOJIS[member.relation_type]}</span>
+              <div key={member.id} className="bg-slate-800 rounded-2xl overflow-hidden">
+                <div className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-purple-600/20 flex items-center justify-center">
+                      <span className="text-2xl">{RELATION_EMOJIS[member.relation_type]}</span>
+                    </div>
+                    <div>
+                      <p className="text-white font-bold">{member.name}</p>
+                      <p className="text-purple-400 text-sm">{t(member.relation_type)}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-white font-bold">{member.name}</p>
-                    <p className="text-purple-400 text-sm">{t(member.relation_type)}</p>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setExpandedMember(expandedMember === member.id ? null : member.id)}
+                      className={`p-2 rounded-lg transition ${expandedMember === member.id ? 'bg-purple-600 text-white' : 'text-purple-400 hover:bg-purple-600/20'}`}
+                      title={t('shareLink')}
+                    >
+                      <Share2 size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleRemoveMember(member.id)}
+                      className="p-2 text-slate-500 hover:text-red-400 transition"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                {/* Expanded invite section */}
+                <AnimatePresence>
+                  {expandedMember === member.id && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-4 pb-4 border-t border-slate-700 pt-3">
+                        <p className="text-xs text-slate-400 mb-2">
+                          {t('inviteHint').replace('{name}', member.name)}
+                        </p>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => shareInviteLink(member)}
+                            className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 hover:opacity-90 transition"
+                          >
+                            <Share2 size={14} /> {t('shareLink')}
+                          </button>
+                          <button
+                            onClick={() => copyInviteLink(member)}
+                            className="bg-slate-700 text-white px-3 py-2.5 rounded-xl text-sm flex items-center gap-1 hover:bg-slate-600 transition"
+                          >
+                            {copiedCode === member.id ? (
+                              <><Check size={14} className="text-green-400" /> {t('linkCopied')}</>
+                            ) : (
+                              <><Copy size={14} /> {t('copyLink')}</>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Action buttons row */}
+                <div className="flex border-t border-slate-700">
                   <button
                     onClick={() => startBrowse(member)}
-                    className="bg-purple-600 text-white px-3 py-2 rounded-xl text-sm font-medium hover:bg-purple-500 transition"
+                    className="flex-1 py-2.5 text-purple-300 text-sm font-medium hover:bg-purple-600/10 transition flex items-center justify-center gap-1"
                   >
-                    {t('browseFor').replace('{name}', '')} {'\u{1F440}'}
-                  </button>
-                  <button
-                    onClick={() => handleRemoveMember(member.id)}
-                    className="p-2 text-slate-500 hover:text-red-400 transition"
-                  >
-                    <Trash2 size={16} />
+                    {'\u{1F440}'} {t('orSelfBrowse')}
                   </button>
                 </div>
               </div>
@@ -703,14 +792,18 @@ export default function PorodicaPage() {
           </div>
           <div className="flex gap-3">
             <span className="text-purple-400 font-bold">2.</span>
-            <span>Swipe als Familienmitglied durch Profile</span>
+            <span>Teile den Einladungslink per WhatsApp, SMS oder persoenlich</span>
           </div>
           <div className="flex gap-3">
             <span className="text-purple-400 font-bold">3.</span>
-            <span>Die vorgeschlagenen Profile erscheinen in deinem Posteingang</span>
+            <span>Dein Familienmitglied oeffnet den Link auf dem eigenen Handy und swipt</span>
           </div>
           <div className="flex gap-3">
             <span className="text-purple-400 font-bold">4.</span>
+            <span>Die Vorschlaege erscheinen in deinem Posteingang</span>
+          </div>
+          <div className="flex gap-3">
+            <span className="text-purple-400 font-bold">5.</span>
             <span>Du entscheidest ob du Liken oder Skippen willst</span>
           </div>
         </div>

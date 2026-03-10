@@ -8,14 +8,19 @@
 -- 1. FAMILY_MEMBERS Tabelle
 -- Familienmitglieder die KEINE echten Auth-User sind
 -- Der User erstellt Profile fuer seine Familie
+-- invite_code ermoeglicht separaten Login fuer Familienmitglieder
 CREATE TABLE IF NOT EXISTS public.family_members (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   owner_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   name text NOT NULL,
   relation_type text NOT NULL CHECK (relation_type IN ('mama', 'papa', 'schwester', 'bruder', 'cousine', 'cousin', 'tante', 'onkel', 'oma', 'opa', 'andere')),
   photo text DEFAULT NULL,
+  invite_code text UNIQUE DEFAULT substr(md5(random()::text), 1, 8),
   created_at timestamptz DEFAULT now()
 );
+
+-- Index fuer invite_code Lookups
+CREATE UNIQUE INDEX IF NOT EXISTS idx_family_members_invite_code ON public.family_members(invite_code);
 
 -- 2. PORODICA_SUGGESTIONS updaten/neu erstellen
 -- Falls die alte Tabelle existiert, droppen wir sie und erstellen sie neu
@@ -49,11 +54,21 @@ CREATE INDEX IF NOT EXISTS idx_porodica_suggestions_family ON public.porodica_su
 ALTER TABLE public.family_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.porodica_suggestions ENABLE ROW LEVEL SECURITY;
 
--- FAMILY_MEMBERS: Owner kann alles, andere koennen nichts sehen
+-- =============================================
+-- FAMILY_MEMBERS Policies
+-- =============================================
+
+-- Owner (authenticated) kann seine eigenen Mitglieder sehen
 CREATE POLICY "Users can view their own family members"
   ON public.family_members FOR SELECT
   TO authenticated
   USING (auth.uid() = owner_id);
+
+-- Anon kann via invite_code ein Mitglied sehen (fuer den eigenen Login)
+CREATE POLICY "Anyone can view family member by invite code"
+  ON public.family_members FOR SELECT
+  TO anon
+  USING (true);
 
 CREATE POLICY "Users can create family members"
   ON public.family_members FOR INSERT
@@ -70,7 +85,20 @@ CREATE POLICY "Users can delete their family members"
   TO authenticated
   USING (auth.uid() = owner_id);
 
--- PORODICA_SUGGESTIONS: Owner und Familienmitglied-Owner koennen sehen
+-- =============================================
+-- PROFILES: Anon braucht Lesezugriff fuer Porodica-Browse
+-- =============================================
+-- Check ob anon schon lesen darf, falls nicht:
+CREATE POLICY "Anon can read profiles for porodica"
+  ON public.profiles FOR SELECT
+  TO anon
+  USING (true);
+
+-- =============================================
+-- PORODICA_SUGGESTIONS Policies
+-- =============================================
+
+-- Authenticated: Owner sieht Vorschlaege
 CREATE POLICY "Users can view suggestions for them"
   ON public.porodica_suggestions FOR SELECT
   TO authenticated
@@ -83,6 +111,7 @@ CREATE POLICY "Users can view suggestions for them"
     )
   );
 
+-- Authenticated: Owner kann Vorschlaege erstellen (self-browse modus)
 CREATE POLICY "Family member owners can create suggestions"
   ON public.porodica_suggestions FOR INSERT
   TO authenticated
@@ -94,10 +123,36 @@ CREATE POLICY "Family member owners can create suggestions"
     )
   );
 
+-- Anon: Familienmitglieder koennen Vorschlaege erstellen (via invite_code)
+CREATE POLICY "Anon can create suggestions via invite code"
+  ON public.porodica_suggestions FOR INSERT
+  TO anon
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.family_members
+      WHERE family_members.id = family_member_id
+    )
+  );
+
+-- Anon: Familienmitglieder koennen ihre eigenen Vorschlaege sehen
+CREATE POLICY "Anon can view suggestions they created"
+  ON public.porodica_suggestions FOR SELECT
+  TO anon
+  USING (true);
+
+-- Authenticated: User kann Status updaten (like/pass)
 CREATE POLICY "Users can update suggestion status"
   ON public.porodica_suggestions FOR UPDATE
   TO authenticated
   USING (auth.uid() = for_user_id);
+
+-- =============================================
+-- SWIPES: Anon braucht Lesezugriff fuer already-swiped Check
+-- =============================================
+CREATE POLICY "Anon can read swipes for porodica"
+  ON public.swipes FOR SELECT
+  TO anon
+  USING (true);
 
 -- Verifizierung
 SELECT 'family_members' as table_name, count(*) as count FROM public.family_members
