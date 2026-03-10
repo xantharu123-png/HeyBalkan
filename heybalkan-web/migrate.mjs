@@ -21,35 +21,8 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Try to load .env.local
-const envPath = path.join(__dirname, '.env.local');
-if (fs.existsSync(envPath)) {
-  const envContent = fs.readFileSync(envPath, 'utf-8');
-  for (const line of envContent.split('\n')) {
-    const match = line.match(/^([^#=]+)=(.*)$/);
-    if (match) {
-      const key = match[1].trim();
-      const value = match[2].trim();
-      if (!process.env[key]) {
-        process.env[key] = value;
-      }
-    }
-  }
-}
-
-const DATABASE_URL = process.env.DATABASE_URL;
-
-if (!DATABASE_URL) {
-  console.error('\n\x1b[31m✗ DATABASE_URL nicht gefunden!\x1b[0m\n');
-  console.log('Fuege die DATABASE_URL in deine .env.local Datei ein:');
-  console.log('');
-  console.log('  DATABASE_URL=postgresql://postgres.detmafncymcheenmtkny:DEIN_PASSWORT@aws-0-eu-central-1.pooler.supabase.com:6543/postgres');
-  console.log('');
-  console.log('Dein Passwort findest du unter:');
-  console.log('  Supabase Dashboard > Project Settings > Database > Connection string');
-  console.log('');
-  process.exit(1);
-}
+// Database connection - env variable or hardcoded fallback
+const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://postgres:Tisiti123.$@db.detmafncymcheenmtkny.supabase.co:5432/postgres';
 
 // Migration files in der richtigen Reihenfolge
 const MIGRATION_FILES = [
