@@ -45,7 +45,7 @@ export default function DiscoverPage() {
     // 1. Eigenes Profil laden mit allen Preferences
     const { data: myProfile } = await supabase
       .from('profiles')
-      .select('gender, looking_for, birth_date, preferred_age_min, preferred_age_max, preferred_religion, preferred_origins')
+      .select('gender, looking_for, birth_date, preferred_age_min, preferred_age_max, preferred_religion, preferred_origins, preferred_regions')
       .eq('id', uid)
       .single();
 
@@ -88,12 +88,14 @@ export default function DiscoverPage() {
 
     const { data } = await query.limit(50);
 
-    // Client-side Alters-Filter (braucht Berechnung aus birth_date)
+    // Client-side Filter (Alter + Region)
     let filtered = data || [];
+    const now = new Date();
+
+    // Alters-Filter
     if (myProfile?.preferred_age_min || myProfile?.preferred_age_max) {
       const minAge = myProfile.preferred_age_min || 18;
       const maxAge = myProfile.preferred_age_max || 99;
-      const now = new Date();
 
       filtered = filtered.filter((p: { birth_date: string }) => {
         const bd = new Date(p.birth_date);
@@ -101,6 +103,14 @@ export default function DiscoverPage() {
         const m = now.getMonth() - bd.getMonth();
         if (m < 0 || (m === 0 && now.getDate() < bd.getDate())) age--;
         return age >= minAge && age <= maxAge;
+      });
+    }
+
+    // Region-Filter: wenn Regionen ausgewaehlt, nur Profile aus diesen Regionen
+    if (myProfile?.preferred_regions && myProfile.preferred_regions.length > 0) {
+      filtered = filtered.filter((p: { origin_region: string | null }) => {
+        if (!p.origin_region) return true; // Profile ohne Region werden trotzdem angezeigt
+        return myProfile.preferred_regions.includes(p.origin_region);
       });
     }
 

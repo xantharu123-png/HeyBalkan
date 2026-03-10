@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { X, Camera, ImagePlus } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useLanguage } from '@/hooks/useLanguage';
-import { COUNTRIES, DACH_COUNTRIES, SPOKEN_LANGUAGES, RELIGIONS, RELATIONSHIP_GOALS } from '@/lib/constants';
+import { COUNTRIES, DACH_COUNTRIES, SPOKEN_LANGUAGES, RELIGIONS, RELATIONSHIP_GOALS, REGIONS } from '@/lib/constants';
 
 const TOTAL_STEPS = 7;
 
@@ -22,8 +22,9 @@ export default function OnboardingPage() {
   const [birthDate, setBirthDate] = useState('');
   const [gender, setGender] = useState('');
   const [lookingFor, setLookingFor] = useState('');
-  // Step 2: Origin + Languages
+  // Step 2: Origin + Region + Languages
   const [originCountry, setOriginCountry] = useState('');
+  const [originRegion, setOriginRegion] = useState('');
   const [spokenLanguages, setSpokenLanguages] = useState<string[]>([]);
   // Step 3: City + DACH Country
   const [city, setCity] = useState('');
@@ -36,6 +37,7 @@ export default function OnboardingPage() {
   const [prefAgeMax, setPrefAgeMax] = useState(50);
   const [prefReligion, setPrefReligion] = useState('egal');
   const [prefOrigins, setPrefOrigins] = useState<string[]>([]);
+  const [prefRegions, setPrefRegions] = useState<string[]>([]);
   // Step 6: Photos
   const [photos, setPhotos] = useState<{ file: File; preview: string }[]>([]);
   // Step 7: Bio
@@ -55,7 +57,19 @@ export default function OnboardingPage() {
   };
 
   const togglePrefOrigin = (code: string) => {
-    setPrefOrigins(prev =>
+    setPrefOrigins(prev => {
+      const next = prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code];
+      // Wenn Land entfernt wird, auch die Regionen des Landes entfernen
+      if (!next.includes(code)) {
+        const regionCodes = (REGIONS[code] || []).map(r => r.code);
+        setPrefRegions(pr => pr.filter(r => !regionCodes.includes(r)));
+      }
+      return next;
+    });
+  };
+
+  const togglePrefRegion = (code: string) => {
+    setPrefRegions(prev =>
       prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]
     );
   };
@@ -134,6 +148,8 @@ export default function OnboardingPage() {
       preferred_age_max: prefAgeMax,
       preferred_religion: prefReligion,
       preferred_origins: prefOrigins,
+      preferred_regions: prefRegions,
+      origin_region: originRegion || null,
       onboarding_complete: true,
     });
 
@@ -230,7 +246,7 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 2: Origin + Languages */}
+        {/* Step 2: Origin + Region + Languages */}
         {step === 2 && (
           <div className="space-y-6">
             <div>
@@ -239,7 +255,7 @@ export default function OnboardingPage() {
                 {COUNTRIES.map(c => (
                   <button
                     key={c.code}
-                    onClick={() => setOriginCountry(c.code)}
+                    onClick={() => { setOriginCountry(c.code); setOriginRegion(''); }}
                     className={`py-3 px-4 rounded-xl text-left font-medium transition ${
                       originCountry === c.code
                         ? 'bg-indigo-600 text-white'
@@ -251,6 +267,27 @@ export default function OnboardingPage() {
                 ))}
               </div>
             </div>
+            {/* Region Selection */}
+            {originCountry && REGIONS[originCountry] && (
+              <div>
+                <label className="block text-slate-200 font-semibold mb-3">Region / Stadt</label>
+                <div className="space-y-2">
+                  {REGIONS[originCountry].map(r => (
+                    <button
+                      key={r.code}
+                      onClick={() => setOriginRegion(r.code)}
+                      className={`w-full py-3 px-4 rounded-xl text-left font-medium transition text-sm ${
+                        originRegion === r.code
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-slate-800 text-slate-300 border border-slate-700 hover:border-slate-500'
+                      }`}
+                    >
+                      📍 {r.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div>
               <label className="block text-slate-200 font-semibold mb-3">{t('yourLanguages')}</label>
               <div className="flex flex-wrap gap-2">
@@ -441,11 +478,46 @@ export default function OnboardingPage() {
               </div>
               {prefOrigins.length > 0 && (
                 <button
-                  onClick={() => setPrefOrigins([])}
+                  onClick={() => { setPrefOrigins([]); setPrefRegions([]); }}
                   className="mt-2 text-sm text-indigo-400 hover:text-indigo-300"
                 >
                   ↩ {t('allCountries')}
                 </button>
+              )}
+
+              {/* Regionen fuer ausgewaehlte Laender */}
+              {prefOrigins.length > 0 && (
+                <div className="mt-4">
+                  <label className="block text-slate-200 font-semibold mb-2">Regionen (optional)</label>
+                  <p className="text-slate-400 text-xs mb-3">
+                    {prefRegions.length === 0 ? 'Alle Regionen' : `${prefRegions.length} Regionen ausgewaehlt`}
+                  </p>
+                  {prefOrigins.map(countryCode => {
+                    const country = COUNTRIES.find(c => c.code === countryCode);
+                    const regions = REGIONS[countryCode];
+                    if (!regions || !country) return null;
+                    return (
+                      <div key={countryCode} className="mb-3">
+                        <p className="text-slate-300 text-sm font-medium mb-2">{country.flag} {country.name}</p>
+                        <div className="flex flex-wrap gap-2">
+                          {regions.map(r => (
+                            <button
+                              key={r.code}
+                              onClick={() => togglePrefRegion(r.code)}
+                              className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
+                                prefRegions.includes(r.code)
+                                  ? 'bg-purple-600 text-white'
+                                  : 'bg-slate-800 text-slate-400 border border-slate-700 hover:border-slate-500'
+                              }`}
+                            >
+                              {r.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
           </div>

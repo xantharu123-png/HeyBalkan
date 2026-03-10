@@ -30,6 +30,56 @@ export const RELATIONSHIP_GOALS = [
   { key: 'open', emoji: '\u{1F30D}', de: 'Offen fuer alles', en: 'Open to anything', sr: 'Otvoren za sve', sq: 'Hapur per gjithcka' },
 ];
 
+// Regionen pro Land - die wichtigsten/bekanntesten Regionen
+export const REGIONS: Record<string, { code: string; name: string }[]> = {
+  RS: [
+    { code: 'RS-BG', name: 'Beograd' },
+    { code: 'RS-VO', name: 'Vojvodina' },
+    { code: 'RS-SU', name: 'Sumadija' },
+    { code: 'RS-NI', name: 'Nis / Jug Srbije' },
+    { code: 'RS-ZS', name: 'Zapadna Srbija' },
+    { code: 'RS-SB', name: 'Sandzak' },
+  ],
+  HR: [
+    { code: 'HR-ZG', name: 'Zagreb' },
+    { code: 'HR-DA', name: 'Dalmacija (Split, Zadar, Dubrovnik)' },
+    { code: 'HR-IS', name: 'Istra / Kvarner' },
+    { code: 'HR-SL', name: 'Slavonija' },
+    { code: 'HR-ZA', name: 'Zagorje / Medjimurje' },
+  ],
+  BA: [
+    { code: 'BA-SA', name: 'Sarajevo' },
+    { code: 'BA-TU', name: 'Tuzla / Sjeveroistok' },
+    { code: 'BA-MO', name: 'Mostar / Hercegovina' },
+    { code: 'BA-BL', name: 'Banja Luka / Krajina' },
+    { code: 'BA-ZE', name: 'Zenica / Centralna BiH' },
+    { code: 'BA-BR', name: 'Brcko / Posavina' },
+  ],
+  ME: [
+    { code: 'ME-PG', name: 'Podgorica' },
+    { code: 'ME-PO', name: 'Primorje (Bar, Budva, Kotor)' },
+    { code: 'ME-NK', name: 'Niksic / Sjever' },
+  ],
+  MK: [
+    { code: 'MK-SK', name: 'Skopje' },
+    { code: 'MK-OH', name: 'Ohrid / Jugozapad' },
+    { code: 'MK-BT', name: 'Bitola / Prilep' },
+    { code: 'MK-ST', name: 'Stip / Istok' },
+  ],
+  XK: [
+    { code: 'XK-PR', name: 'Prishtina' },
+    { code: 'XK-PZ', name: 'Prizren' },
+    { code: 'XK-PE', name: 'Peja / Decan' },
+    { code: 'XK-MI', name: 'Mitrovica' },
+    { code: 'XK-GJ', name: 'Gjilan / Ferizaj' },
+  ],
+  SI: [
+    { code: 'SI-LJ', name: 'Ljubljana' },
+    { code: 'SI-MB', name: 'Maribor / Stajerska' },
+    { code: 'SI-KP', name: 'Koper / Primorska' },
+  ],
+};
+
 export const APP_LANGUAGES = [
   { code: 'de', name: 'Deutsch', flag: 'DE' },
   { code: 'en', name: 'English', flag: 'EN' },

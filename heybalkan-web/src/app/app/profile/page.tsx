@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { LogOut, Shield, Bell, HelpCircle, MessageSquare, Heart, X, ImagePlus, Pencil, Check } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useLanguage } from '@/hooks/useLanguage';
-import { COUNTRIES, DACH_COUNTRIES, SPOKEN_LANGUAGES, RELIGIONS, RELATIONSHIP_GOALS, APP_LANGUAGES } from '@/lib/constants';
+import { COUNTRIES, DACH_COUNTRIES, SPOKEN_LANGUAGES, RELIGIONS, RELATIONSHIP_GOALS, APP_LANGUAGES, REGIONS } from '@/lib/constants';
 import type { Locale } from '@/i18n/translations';
 
 interface Profile {
@@ -26,6 +26,8 @@ interface Profile {
   preferred_age_max: number;
   preferred_religion: string;
   preferred_origins: string[];
+  preferred_regions: string[];
+  origin_region: string | null;
 }
 
 function getAge(bd: string) {
@@ -64,6 +66,8 @@ export default function ProfilePage() {
   const [prefAgeMax, setPrefAgeMax] = useState(50);
   const [prefReligion, setPrefReligion] = useState('egal');
   const [prefOrigins, setPrefOrigins] = useState<string[]>([]);
+  const [prefRegions, setPrefRegions] = useState<string[]>([]);
+  const [originRegion, setOriginRegion] = useState('');
 
   useEffect(() => {
     async function load() {
@@ -99,10 +103,23 @@ export default function ProfilePage() {
     setPrefAgeMax(p.preferred_age_max || 50);
     setPrefReligion(p.preferred_religion || 'egal');
     setPrefOrigins(p.preferred_origins || []);
+    setPrefRegions(p.preferred_regions || []);
+    setOriginRegion(p.origin_region || '');
   };
 
   const togglePrefOrigin = (code: string) => {
-    setPrefOrigins(prev =>
+    setPrefOrigins(prev => {
+      const next = prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code];
+      if (!next.includes(code)) {
+        const regionCodes = (REGIONS[code] || []).map(r => r.code);
+        setPrefRegions(pr => pr.filter(r => !regionCodes.includes(r)));
+      }
+      return next;
+    });
+  };
+
+  const togglePrefRegion = (code: string) => {
+    setPrefRegions(prev =>
       prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]
     );
   };
@@ -187,6 +204,8 @@ export default function ProfilePage() {
         preferred_age_max: prefAgeMax,
         preferred_religion: prefReligion,
         preferred_origins: prefOrigins,
+        preferred_regions: prefRegions,
+        origin_region: originRegion || null,
       })
       .eq('id', profile.id);
 
@@ -233,6 +252,9 @@ export default function ProfilePage() {
   const age = getAge(profile.birth_date);
   const photo = profile.photos?.[0];
   const goalObj = RELATIONSHIP_GOALS.find(g => g.key === profile.relationship_goal);
+  const regionObj = profile.origin_region && REGIONS[profile.origin_country]
+    ? REGIONS[profile.origin_country].find(r => r.code === profile.origin_region)
+    : null;
 
   // ───── VIEW MODE ─────
   if (!editing) {
@@ -267,7 +289,7 @@ export default function ProfilePage() {
             {profile.first_name}, {age}
           </h2>
           {country && (
-            <p className="text-white/90 mt-1">{country.flag} {country.name}</p>
+            <p className="text-white/90 mt-1">{country.flag} {country.name}{regionObj ? ` – ${regionObj.name}` : ''}</p>
           )}
           {profile.city && dachCountry && (
             <p className="text-white/70 text-sm">📍 {profile.city}, {dachCountry.flag} {dachCountry.name}</p>
@@ -530,14 +552,14 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Origin Country */}
+        {/* Origin Country + Region */}
         <div>
           <label className="block text-slate-200 font-semibold mb-3">{t('yourOrigin')}</label>
           <div className="grid grid-cols-2 gap-2">
             {COUNTRIES.map(c => (
               <button
                 key={c.code}
-                onClick={() => setOriginCountry(c.code)}
+                onClick={() => { setOriginCountry(c.code); setOriginRegion(''); }}
                 className={`py-3 px-4 rounded-xl text-left font-medium transition ${
                   originCountry === c.code
                     ? 'bg-indigo-600 text-white'
@@ -548,6 +570,26 @@ export default function ProfilePage() {
               </button>
             ))}
           </div>
+          {originCountry && REGIONS[originCountry] && (
+            <div className="mt-4">
+              <label className="block text-slate-200 font-semibold mb-2">Region / Stadt</label>
+              <div className="space-y-2">
+                {REGIONS[originCountry].map(r => (
+                  <button
+                    key={r.code}
+                    onClick={() => setOriginRegion(r.code)}
+                    className={`w-full py-3 px-4 rounded-xl text-left font-medium transition text-sm ${
+                      originRegion === r.code
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-800 text-slate-300 border border-slate-700 hover:border-slate-500'
+                    }`}
+                  >
+                    📍 {r.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Languages */}
@@ -698,11 +740,46 @@ export default function ProfilePage() {
             </div>
             {prefOrigins.length > 0 && (
               <button
-                onClick={() => setPrefOrigins([])}
+                onClick={() => { setPrefOrigins([]); setPrefRegions([]); }}
                 className="mt-2 text-sm text-indigo-400 hover:text-indigo-300"
               >
                 ↩ {t('allCountries')}
               </button>
+            )}
+
+            {/* Regionen fuer ausgewaehlte Laender */}
+            {prefOrigins.length > 0 && (
+              <div className="mt-4">
+                <label className="block text-slate-200 font-semibold mb-2">Regionen (optional)</label>
+                <p className="text-slate-400 text-xs mb-3">
+                  {prefRegions.length === 0 ? 'Alle Regionen' : `${prefRegions.length} Regionen ausgewaehlt`}
+                </p>
+                {prefOrigins.map(countryCode => {
+                  const ctry = COUNTRIES.find(c => c.code === countryCode);
+                  const regions = REGIONS[countryCode];
+                  if (!regions || !ctry) return null;
+                  return (
+                    <div key={countryCode} className="mb-3">
+                      <p className="text-slate-300 text-sm font-medium mb-2">{ctry.flag} {ctry.name}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {regions.map(r => (
+                          <button
+                            key={r.code}
+                            onClick={() => togglePrefRegion(r.code)}
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
+                              prefRegions.includes(r.code)
+                                ? 'bg-purple-600 text-white'
+                                : 'bg-slate-800 text-slate-400 border border-slate-700 hover:border-slate-500'
+                            }`}
+                          >
+                            {r.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>
