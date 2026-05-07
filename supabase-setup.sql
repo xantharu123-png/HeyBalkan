@@ -2,6 +2,7 @@
 -- HEY BALKAN - Supabase Setup
 -- Kopiere ALLES und fuehre es im SQL Editor aus
 -- supabase.com > Dein Projekt > SQL Editor > New Query
+-- Danach harden-waitlist-public-access.sql ausfuehren.
 -- ============================================
 
 -- 1. Waitlist Tabelle erstellen (falls noch nicht vorhanden)

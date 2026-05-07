@@ -7,8 +7,8 @@
 // Usage:
 //   node migrate.mjs
 //
-// Benoetigt das Datenbank-Passwort in .env.local:
-//   DATABASE_URL=postgresql://postgres.detmafncymcheenmtkny:DEIN_PASSWORT@aws-0-eu-central-1.pooler.supabase.com:6543/postgres
+// Benoetigt eine lokale Umgebungsvariable:
+//   DATABASE_URL=postgresql://postgres.PROJECT_REF:DEIN_PASSWORT@aws-0-eu-central-1.pooler.supabase.com:6543/postgres
 //
 // Oder als Umgebungsvariable:
 //   DATABASE_URL=... node migrate.mjs
@@ -21,22 +21,25 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Database connection - individual params to avoid special char issues
-const DB_CONFIG = {
-  host: 'db.detmafncymcheenmtkny.supabase.co',
-  port: 5432,
-  database: 'postgres',
-  user: 'postgres',
-  password: 'Tisiti123.$',
-  ssl: { rejectUnauthorized: false },
-};
+const DATABASE_URL = process.env.DATABASE_URL;
+
+if (!DATABASE_URL) {
+  console.error('\x1b[31mDATABASE_URL fehlt.\x1b[0m');
+  console.error('Setze sie lokal, z.B.:');
+  console.error('  $env:DATABASE_URL="postgresql://postgres.PROJECT_REF:PASSWORT@aws-0-eu-central-1.pooler.supabase.com:6543/postgres"');
+  console.error('  node migrate.mjs');
+  process.exit(1);
+}
 
 // Migration files in der richtigen Reihenfolge
 const MIGRATION_FILES = [
+  '../supabase-setup.sql',
+  '../harden-waitlist-public-access.sql',
   '../heybalkan-app/supabase-app-schema.sql',
   '../add-preferences-columns.sql',
   '../add-regions-columns.sql',
   '../add-porodica-tables.sql',
+  '../harden-porodica-public-access.sql',
   '../fake-profiles.sql',
 ];
 
@@ -52,7 +55,10 @@ CREATE TABLE IF NOT EXISTS public._migrations (
 async function run() {
   console.log('\n\x1b[36m🚀 Hey Balkan - Migration Runner\x1b[0m\n');
 
-  const client = new pg.Client(DB_CONFIG);
+  const client = new pg.Client({
+    connectionString: DATABASE_URL,
+    ssl: { rejectUnauthorized: false },
+  });
 
   try {
     await client.connect();

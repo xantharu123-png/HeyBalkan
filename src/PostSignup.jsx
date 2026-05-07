@@ -191,18 +191,18 @@ export default function PostSignup({ email, lang, supabase }) {
   useEffect(() => {
     // Fetch user data from supabase
     const fetchUserData = async () => {
-      const { data } = await supabase
-        .from('waitlist')
-        .select('referral_code, referral_count, position, name, bio')
-        .eq('email', email.toLowerCase().trim())
-        .single();
+      const { data } = await supabase.rpc('get_waitlist_entry', {
+        p_email: email.toLowerCase().trim(),
+      });
 
-      if (data) {
-        setReferralCode(data.referral_code || '');
-        setReferralCount(data.referral_count || 0);
-        setPosition(data.position || null);
-        if (data.name) setName(data.name);
-        if (data.bio) setBio(data.bio);
+      const entry = data?.[0];
+
+      if (entry) {
+        setReferralCode(entry.referral_code || '');
+        setReferralCount(entry.referral_count || 0);
+        setPosition(entry.position || null);
+        if (entry.name) setName(entry.name);
+        if (entry.bio) setBio(entry.bio);
       }
     };
     fetchUserData();
@@ -250,10 +250,11 @@ export default function PostSignup({ email, lang, supabase }) {
 
   const saveProfile = async () => {
     if (!name.trim()) return;
-    await supabase
-      .from('waitlist')
-      .update({ name: name.trim(), bio: bio.trim() })
-      .eq('email', email.toLowerCase().trim());
+    await supabase.rpc('save_waitlist_profile', {
+      p_email: email.toLowerCase().trim(),
+      p_name: name.trim(),
+      p_bio: bio.trim() || null,
+    });
     setProfileSaved(true);
     setTimeout(() => setShowProfile(false), 1500);
   };

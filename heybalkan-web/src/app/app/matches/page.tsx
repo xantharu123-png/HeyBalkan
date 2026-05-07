@@ -15,6 +15,18 @@ interface MatchUser {
   photos: string[];
 }
 
+interface MatchRow {
+  id: number;
+  user1_id: string;
+  user2_id: string;
+  user1: Omit<MatchUser, 'matchId'> | Omit<MatchUser, 'matchId'>[] | null;
+  user2: Omit<MatchUser, 'matchId'> | Omit<MatchUser, 'matchId'>[] | null;
+}
+
+function asProfile(profile: MatchRow['user1']) {
+  return Array.isArray(profile) ? profile[0] ?? null : profile;
+}
+
 function getAge(bd: string) {
   const b = new Date(bd);
   const now = new Date();
@@ -46,8 +58,9 @@ export default function MatchesPage() {
         .or(`user1_id.eq.${uid},user2_id.eq.${uid}`)
         .order('created_at', { ascending: false });
 
-      const list = (data || []).map((m: any) => {
-        const other = m.user1_id === uid ? m.user2 : m.user1;
+      const list = ((data || []) as MatchRow[]).flatMap((m) => {
+        const other = asProfile(m.user1_id === uid ? m.user2 : m.user1);
+        if (!other) return [];
         return { matchId: m.id, ...other };
       });
 

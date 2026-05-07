@@ -31,29 +31,15 @@ export default function HeyBalkanLanding() {
     setError('');
 
     try {
-      const insertData = {
-        email: email.toLowerCase().trim(),
-        origin: origin || null,
-        language: lang,
-      };
-      if (referredBy) insertData.referred_by = referredBy;
-
-      const { error: dbError } = await supabase
-        .from('waitlist')
-        .insert([insertData]);
-
-      // If referred, increment referrer's count
-      if (!dbError && referredBy) {
-        await supabase.rpc('increment_referral_count', { ref_code: referredBy }).catch(() => {});
-      }
+      const { error: dbError } = await supabase.rpc('join_waitlist', {
+        p_email: email.toLowerCase().trim(),
+        p_origin: origin || null,
+        p_language: lang,
+        p_referred_by: referredBy || null,
+      });
 
       if (dbError) {
-        if (dbError.code === '23505') {
-          // Email already exists - still show success
-          setSubmitted(true);
-        } else {
-          throw dbError;
-        }
+        throw dbError;
       } else {
         setSubmitted(true);
       }

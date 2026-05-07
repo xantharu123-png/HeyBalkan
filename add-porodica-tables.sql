@@ -3,6 +3,7 @@
 -- ============================================
 -- Fuehre dieses SQL im Supabase SQL Editor aus
 -- NACH dem add-regions-columns.sql
+-- Danach harden-porodica-public-access.sql ausfuehren.
 -- ============================================
 
 -- 1. FAMILY_MEMBERS Tabelle

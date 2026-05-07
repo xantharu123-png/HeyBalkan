@@ -11,6 +11,18 @@ interface Conversation {
   lastMessage: { content: string; created_at: string; sender_id: string } | null;
 }
 
+interface MatchRow {
+  id: number;
+  user1_id: string;
+  user2_id: string;
+  user1: Conversation['user'] | Conversation['user'][] | null;
+  user2: Conversation['user'] | Conversation['user'][] | null;
+}
+
+function asProfile(profile: MatchRow['user1']) {
+  return Array.isArray(profile) ? profile[0] ?? null : profile;
+}
+
 export default function ChatListPage() {
   const router = useRouter();
   const { t } = useLanguage();
@@ -35,9 +47,10 @@ export default function ChatListPage() {
         .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
         .order('created_at', { ascending: false });
 
-      const convos = await Promise.all(
-        (matchData || []).map(async (m: any) => {
-          const otherUser = m.user1_id === userId ? m.user2 : m.user1;
+      const convos = (await Promise.all(
+        ((matchData || []) as MatchRow[]).map(async (m) => {
+          const otherUser = asProfile(m.user1_id === userId ? m.user2 : m.user1);
+          if (!otherUser) return null;
           const { data: lastMsg } = await supabase
             .from('messages')
             .select('content, created_at, sender_id')
@@ -47,7 +60,7 @@ export default function ChatListPage() {
             .single();
           return { matchId: m.id, user: otherUser, lastMessage: lastMsg };
         })
-      );
+      )).filter((c): c is Conversation => c !== null);
 
       convos.sort((a, b) => {
         if (a.lastMessage && !b.lastMessage) return -1;

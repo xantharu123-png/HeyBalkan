@@ -38,6 +38,17 @@ interface BrowseProfile {
   photos: string[];
 }
 
+interface PorodicaInviteRow {
+  member_id: string;
+  owner_id: string;
+  member_name: string;
+  relation_type: string;
+  invite_code: string;
+  owner_first_name: string;
+  owner_gender: string;
+  owner_looking_for: string;
+}
+
 const RELATION_EMOJIS: Record<string, string> = {
   mama: '\u{1F469}', papa: '\u{1F468}', schwester: '\u{1F469}\u200D\u{1F467}', bruder: '\u{1F468}\u200D\u{1F466}',
   cousine: '\u{1F469}\u200D\u{1F469}\u200D\u{1F467}', cousin: '\u{1F468}\u200D\u{1F468}\u200D\u{1F466}',
@@ -90,71 +101,38 @@ export default function FamilyBrowsePage() {
   const rl = (key: string) => RELATION_LABELS[lang]?.[key] || RELATION_LABELS['de'][key] || key;
 
   const loadData = useCallback(async () => {
-    // 1. Find family member by invite code
-    const { data: memberData, error: memberError } = await supabase
-      .from('family_members')
-      .select('id, owner_id, name, relation_type, invite_code')
-      .eq('invite_code', code)
-      .single();
+    const { data: inviteData, error: inviteError } = await supabase
+      .rpc('get_porodica_invite', { p_invite_code: code });
 
-    if (memberError || !memberData) {
+    const invite = (inviteData?.[0] || null) as PorodicaInviteRow | null;
+
+    if (inviteError || !invite) {
       setViewState('invalid');
       return;
     }
 
-    setMember(memberData);
+    setMember({
+      id: invite.member_id,
+      owner_id: invite.owner_id,
+      name: invite.member_name,
+      relation_type: invite.relation_type,
+      invite_code: invite.invite_code,
+    });
 
-    // 2. Load the owner's profile
-    const { data: ownerData } = await supabase
-      .from('profiles')
-      .select('id, first_name, gender, looking_for')
-      .eq('id', memberData.owner_id)
-      .single();
+    setOwner({
+      id: invite.owner_id,
+      first_name: invite.owner_first_name,
+      gender: invite.owner_gender,
+      looking_for: invite.owner_looking_for,
+    });
 
-    if (!ownerData) {
-      setViewState('invalid');
-      return;
-    }
+    const { data: profileData } = await supabase
+      .rpc('get_porodica_browse_profiles', {
+        p_invite_code: code,
+        p_limit: 50,
+      });
 
-    setOwner(ownerData);
-
-    // 3. Load already-suggested profiles by this member
-    const { data: alreadySuggested } = await supabase
-      .from('porodica_suggestions')
-      .select('suggested_profile_id')
-      .eq('family_member_id', memberData.id);
-
-    // 4. Load already-swiped profiles by the owner
-    const { data: alreadySwiped } = await supabase
-      .from('swipes')
-      .select('swiped_id')
-      .eq('swiper_id', ownerData.id);
-
-    const exclude = [
-      ownerData.id,
-      ...(alreadySuggested?.map(s => s.suggested_profile_id) || []),
-      ...(alreadySwiped?.map(s => s.swiped_id) || []),
-    ];
-
-    // 5. Load profiles matching owner's preferences
-    let query = supabase
-      .from('profiles')
-      .select('id, first_name, birth_date, origin_country, city, bio, photos')
-      .not('id', 'in', `(${exclude.join(',')})`)
-      .eq('onboarding_complete', true);
-
-    if (ownerData.looking_for === 'female') {
-      query = query.eq('gender', 'female');
-    } else if (ownerData.looking_for === 'male') {
-      query = query.eq('gender', 'male');
-    }
-
-    if (ownerData.gender) {
-      query = query.or(`looking_for.eq.${ownerData.gender},looking_for.eq.both`);
-    }
-
-    const { data: profileData } = await query.limit(50);
-    setProfiles(profileData || []);
+    setProfiles((profileData || []) as BrowseProfile[]);
     setViewState('welcome');
   }, [code]);
 
@@ -170,11 +148,10 @@ export default function FamilyBrowsePage() {
 
     setSwipeDirection('right');
 
-    await supabase.from('porodica_suggestions').insert({
-      family_member_id: member.id,
-      for_user_id: owner.id,
-      suggested_profile_id: profile.id,
-      message: suggestMessage || null,
+    await supabase.rpc('create_porodica_suggestion', {
+      p_invite_code: member.invite_code,
+      p_suggested_profile_id: profile.id,
+      p_message: suggestMessage || null,
     });
 
     setSuggestMessage('');

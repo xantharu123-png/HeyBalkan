@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { useLanguage } from '@/hooks/useLanguage';
 import { APP_LANGUAGES } from '@/lib/constants';
+import type { Locale } from '@/i18n/translations';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -44,7 +45,7 @@ export default function LoginPage() {
         {APP_LANGUAGES.map((lang) => (
           <button
             key={lang.code}
-            onClick={() => setLanguage(lang.code as any)}
+            onClick={() => setLanguage(lang.code as Locale)}
             className={`px-2 py-1 rounded text-xs font-medium transition-all ${
               language === lang.code
                 ? 'bg-white text-indigo-600'
