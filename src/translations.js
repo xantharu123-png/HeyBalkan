@@ -4,7 +4,7 @@ export const translations = {
     flag: "DE",
     nav: {},
     hero: {
-      badge: "Coming Soon – Fruehling 2026",
+      badge: "Bald verfuegbar – sichere dir deinen Platz",
       title: "Hey Balkan!",
       subtitle: 'Die erste Dating-App fuer die ',
       subtitleBold: "Balkan-Diaspora",
@@ -87,7 +87,7 @@ export const translations = {
     flag: "EN",
     nav: {},
     hero: {
-      badge: "Coming Soon – Spring 2026",
+      badge: "Launching soon – save your spot",
       title: "Hey Balkan!",
       subtitle: "The first dating app for the ",
       subtitleBold: "Balkan diaspora",
@@ -170,7 +170,7 @@ export const translations = {
     flag: "SR",
     nav: {},
     hero: {
-      badge: "Uskoro – Proljece 2026",
+      badge: "Uskoro – osiguraj svoje mjesto",
       title: "Hey Balkan!",
       subtitle: "Prva dating aplikacija za ",
       subtitleBold: "balkansku dijasporu",
@@ -253,7 +253,7 @@ export const translations = {
     flag: "SQ",
     nav: {},
     hero: {
-      badge: "Se shpejti – Pranvera 2026",
+      badge: "Se shpejti – siguro vendin tend",
       title: "Hey Balkan!",
       subtitle: "Aplikacioni i pare i takimeve per ",
       subtitleBold: "diasporen ballkanike",

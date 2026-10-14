@@ -128,11 +128,12 @@ export default function PorodicaPage() {
         .select('*')
         .in('id', memberIds);
 
+      // Blockierte oder geloeschte Profile liefert die DB nicht mehr: Vorschlag ausblenden
       const enriched = suggs.map(s => ({
         ...s,
         suggested_profile: profiles?.find(p => p.id === s.suggested_profile_id),
         family_member: memberData?.find(m => m.id === s.family_member_id),
-      }));
+      })).filter(s => s.suggested_profile);
 
       setSuggestions(enriched);
     } else {

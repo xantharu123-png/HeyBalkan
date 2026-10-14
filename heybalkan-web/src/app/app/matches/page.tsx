@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useLanguage } from '@/hooks/useLanguage';
 import { COUNTRIES } from '@/lib/constants';
+import SafetyActions from '@/components/SafetyActions';
+import VerifiedBadge from '@/components/VerifiedBadge';
 
 interface MatchUser {
   matchId: number;
@@ -13,6 +15,7 @@ interface MatchUser {
   birth_date: string;
   origin_country: string;
   photos: string[];
+  verification_status?: string | null;
 }
 
 interface MatchRow {
@@ -52,8 +55,8 @@ export default function MatchesPage() {
         .from('matches')
         .select(`
           id, user1_id, user2_id, created_at,
-          user1:profiles!matches_user1_id_fkey(id, first_name, photos, origin_country, birth_date),
-          user2:profiles!matches_user2_id_fkey(id, first_name, photos, origin_country, birth_date)
+          user1:profiles!matches_user1_id_fkey(id, first_name, photos, origin_country, birth_date, verification_status),
+          user2:profiles!matches_user2_id_fkey(id, first_name, photos, origin_country, birth_date, verification_status)
         `)
         .or(`user1_id.eq.${uid},user2_id.eq.${uid}`)
         .order('created_at', { ascending: false });
@@ -100,23 +103,37 @@ export default function MatchesPage() {
             const age = getAge(m.birth_date);
             const country = COUNTRIES.find(c => c.code === m.origin_country);
             return (
-              <button
-                key={m.matchId}
-                onClick={() => router.push(`/app/chat/${m.matchId}?name=${m.first_name}`)}
-                className="bg-slate-800 rounded-2xl overflow-hidden hover:ring-2 hover:ring-indigo-500 transition text-left"
-              >
-                {photo ? (
-                  <img src={photo} alt={m.first_name} className="w-full aspect-[3/4] object-cover" />
-                ) : (
-                  <div className="w-full aspect-[3/4] bg-gradient-to-br from-sky-500/30 to-purple-700/30 flex items-center justify-center">
-                    <span className="text-4xl">👤</span>
+              <div key={m.matchId} className="relative">
+                <button
+                  onClick={() => router.push(`/app/chat/${m.matchId}?name=${encodeURIComponent(m.first_name)}`)}
+                  className="w-full bg-slate-800 rounded-2xl overflow-hidden hover:ring-2 hover:ring-indigo-500 transition text-left"
+                >
+                  {photo ? (
+                    <img src={photo} alt={m.first_name} className="w-full aspect-[3/4] object-cover" />
+                  ) : (
+                    <div className="w-full aspect-[3/4] bg-gradient-to-br from-sky-500/30 to-purple-700/30 flex items-center justify-center">
+                      <span className="text-4xl">👤</span>
+                    </div>
+                  )}
+                  <div className="p-3">
+                    <p className="font-bold text-white flex items-center gap-1.5">
+                      <span className="truncate">{m.first_name}, {age}</span>
+                      <VerifiedBadge status={m.verification_status} size={16} label={t('verified')} />
+                    </p>
+                    {country && <p className="text-sm text-slate-400">{country.flag} {country.name}</p>}
                   </div>
-                )}
-                <div className="p-3">
-                  <p className="font-bold text-white">{m.first_name}, {age}</p>
-                  {country && <p className="text-sm text-slate-400">{country.flag} {country.name}</p>}
+                </button>
+                <div className="absolute top-2 right-2">
+                  <SafetyActions
+                    targetId={m.id}
+                    targetName={m.first_name}
+                    context="match"
+                    matchId={m.matchId}
+                    onBlocked={() => setMatches(prev => prev.filter(x => x.matchId !== m.matchId))}
+                    className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition"
+                  />
                 </div>
-              </button>
+              </div>
             );
           })}
         </div>

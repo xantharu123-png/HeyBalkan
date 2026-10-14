@@ -6,6 +6,7 @@ import { X, Camera, ImagePlus } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useLanguage } from '@/hooks/useLanguage';
 import { COUNTRIES, DACH_COUNTRIES, SPOKEN_LANGUAGES, RELIGIONS, RELATIONSHIP_GOALS, REGIONS } from '@/lib/constants';
+import { MIN_AGE, parseBirthDate, getAgeFromIso } from '@/lib/age';
 
 const TOTAL_STEPS = 7;
 
@@ -92,9 +93,20 @@ export default function OnboardingPage() {
     });
   };
 
+  // 18+: Pruefung im UI, zusaetzlich DB-Constraint profiles_min_age_18
+  const isoBirthDate = birthDate.length === 10 ? parseBirthDate(birthDate) : null;
+  const isAdult = isoBirthDate !== null && getAgeFromIso(isoBirthDate) >= MIN_AGE;
+  const birthDateError = birthDate.length < 10
+    ? ''
+    : !isoBirthDate || getAgeFromIso(isoBirthDate) > 120
+      ? t('errorInvalidDate')
+      : !isAdult
+        ? t('errorUnderage')
+        : '';
+
   const canProceed = () => {
     switch (step) {
-      case 1: return firstName.trim() && birthDate.length === 10 && gender && lookingFor;
+      case 1: return firstName.trim() && isAdult && !birthDateError && gender && lookingFor;
       case 2: return originCountry && spokenLanguages.length > 0;
       case 3: return city.trim() && livingCountry;
       case 4: return relationshipGoal;
@@ -107,6 +119,10 @@ export default function OnboardingPage() {
 
   const handleFinish = async () => {
     if (!userId) return;
+    if (!isAdult || !isoBirthDate) {
+      setStep(1);
+      return;
+    }
     setLoading(true);
 
     // Upload photos to Supabase Storage
@@ -126,14 +142,10 @@ export default function OnboardingPage() {
       }
     }
 
-    // Parse birth date DD.MM.YYYY -> YYYY-MM-DD
-    const parts = birthDate.split('.');
-    const isoDate = parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : birthDate;
-
     const { error } = await supabase.from('profiles').insert({
       id: userId,
       first_name: firstName.trim(),
-      birth_date: isoDate,
+      birth_date: isoBirthDate,
       gender,
       looking_for: lookingFor,
       origin_country: originCountry,
@@ -155,7 +167,8 @@ export default function OnboardingPage() {
 
     setLoading(false);
     if (error) {
-      alert(error.message);
+      // 23514 = Check-Constraint verletzt (Mindestalter)
+      alert(error.code === '23514' ? t('errorUnderage') : error.message);
     } else {
       router.push('/app/discover');
     }
@@ -204,8 +217,16 @@ export default function OnboardingPage() {
                 }}
                 placeholder="TT.MM.JJJJ"
                 maxLength={10}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                inputMode="numeric"
+                aria-invalid={birthDateError ? true : undefined}
+                aria-describedby="birthdate-hint"
+                className={`w-full bg-slate-800 border rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                  birthDateError ? 'border-red-500' : 'border-slate-700'
+                }`}
               />
+              <p id="birthdate-hint" className={`text-xs mt-1.5 ${birthDateError ? 'text-red-400' : 'text-slate-500'}`}>
+                {birthDateError || t('ageHint')}
+              </p>
             </div>
             <div>
               <label className="block text-slate-200 font-semibold mb-2">{t('gender')}</label>

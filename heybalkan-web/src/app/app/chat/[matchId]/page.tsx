@@ -5,6 +5,8 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { ChevronLeft, Send } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useLanguage } from '@/hooks/useLanguage';
+import SafetyActions from '@/components/SafetyActions';
+import VerifiedBadge from '@/components/VerifiedBadge';
 
 interface Message {
   id: number;
@@ -12,6 +14,13 @@ interface Message {
   sender_id: string;
   content: string;
   created_at: string;
+}
+
+interface ChatPartner {
+  id: string;
+  first_name: string;
+  photos: string[] | null;
+  verification_status: string | null;
 }
 
 export default function ChatRoomPage() {
@@ -26,6 +35,8 @@ export default function ChatRoomPage() {
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [uid, setUid] = useState('');
+  const [partner, setPartner] = useState<ChatPartner | null>(null);
+  const [unavailable, setUnavailable] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = useCallback(() => {
@@ -37,6 +48,31 @@ export default function ChatRoomPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       setUid(session.user.id);
+
+      // Match laden: liefert nichts, wenn er nicht existiert oder blockiert ist
+      const { data: match } = await supabase
+        .from('matches')
+        .select('id, user1_id, user2_id')
+        .eq('id', matchId)
+        .maybeSingle();
+
+      if (!match) {
+        setUnavailable(true);
+        return;
+      }
+
+      const partnerId = match.user1_id === session.user.id ? match.user2_id : match.user1_id;
+      const { data: partnerData } = await supabase
+        .from('profiles')
+        .select('id, first_name, photos, verification_status')
+        .eq('id', partnerId)
+        .maybeSingle();
+
+      if (!partnerData) {
+        setUnavailable(true);
+        return;
+      }
+      setPartner(partnerData);
 
       // Load messages
       const { data } = await supabase
@@ -90,7 +126,7 @@ export default function ChatRoomPage() {
     };
     setMessages(prev => [...prev, temp]);
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('messages')
       .insert({ match_id: Number(matchId), sender_id: uid, content })
       .select()
@@ -99,10 +135,31 @@ export default function ChatRoomPage() {
     setSending(false);
     if (data) {
       setMessages(prev => prev.map(m => m.id === temp.id ? data : m));
+    } else if (error) {
+      // z.B. Match nicht mehr verfuegbar (blockiert): Nachricht zuruecknehmen
+      setMessages(prev => prev.filter(m => m.id !== temp.id));
+      setNewMessage(content);
     }
   };
 
   const formatTime = (d: string) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  if (unavailable) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-slate-900 px-8 text-center">
+        <p className="text-5xl mb-4">💬</p>
+        <p className="text-slate-300 mb-6">{t('chatUnavailable')}</p>
+        <button
+          onClick={() => router.replace('/app/chat')}
+          className="bg-indigo-600 text-white font-semibold px-6 py-3 rounded-xl hover:bg-indigo-500 transition"
+        >
+          {t('backToChats')}
+        </button>
+      </div>
+    );
+  }
+
+  const partnerPhoto = partner?.photos?.[0];
 
   return (
     <div className="flex flex-col h-screen bg-slate-900">
@@ -111,8 +168,25 @@ export default function ChatRoomPage() {
         <button onClick={() => router.back()} className="text-slate-300 hover:text-white transition">
           <ChevronLeft size={24} />
         </button>
-        <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-sm">👤</div>
-        <span className="font-bold text-white text-lg">{userName}</span>
+        {partnerPhoto ? (
+          <img src={partnerPhoto} alt="" className="w-9 h-9 rounded-full object-cover" />
+        ) : (
+          <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-sm">👤</div>
+        )}
+        <span className="font-bold text-white text-lg flex-1 flex items-center gap-1.5 min-w-0">
+          <span className="truncate">{partner?.first_name || userName}</span>
+          <VerifiedBadge status={partner?.verification_status} size={18} label={t('verified')} />
+        </span>
+        {partner && (
+          <SafetyActions
+            targetId={partner.id}
+            targetName={partner.first_name}
+            context="chat"
+            matchId={Number(matchId)}
+            onBlocked={() => router.replace('/app/chat')}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-slate-300 hover:text-white hover:bg-slate-700 transition"
+          />
+        )}
       </div>
 
       {/* Messages */}

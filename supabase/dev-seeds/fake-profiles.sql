@@ -4,7 +4,17 @@
 -- Erstellt zuerst Auth-User und dann die Profile.
 -- Fuehre dieses SQL im Supabase SQL Editor aus:
 -- Dashboard -> SQL Editor -> New Query -> Einfuegen -> Run
+--
+-- NUR fuer Dev-/Demo-Datenbanken. Nicht Teil von migrate.mjs.
 -- ============================================
+
+-- Schutz: Abbruch, sobald echte (nicht-.fake) Nutzer existieren
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM auth.users WHERE email NOT LIKE '%@heybalkan.fake') THEN
+    RAISE EXCEPTION 'Dev-Seed abgebrochen: Diese Datenbank enthaelt echte Nutzer.';
+  END IF;
+END $$;
 
 -- Schritt 1: Fake Auth-User erstellen (mit festen UUIDs)
 INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at, confirmation_token, recovery_token)

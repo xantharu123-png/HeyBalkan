@@ -7,6 +7,11 @@ import { supabase } from '@/lib/supabase';
 import { useLanguage } from '@/hooks/useLanguage';
 import { COUNTRIES, DACH_COUNTRIES, SPOKEN_LANGUAGES, RELIGIONS, RELATIONSHIP_GOALS, APP_LANGUAGES, REGIONS } from '@/lib/constants';
 import type { Locale } from '@/i18n/translations';
+import { storagePathFromPublicUrl } from '@/lib/storage';
+import VerifiedBadge from '@/components/VerifiedBadge';
+import VerificationSection from '@/components/VerificationSection';
+import DeleteAccountSection from '@/components/DeleteAccountSection';
+import LegalLinks from '@/components/LegalLinks';
 
 interface Profile {
   id: string;
@@ -28,6 +33,7 @@ interface Profile {
   preferred_origins: string[];
   preferred_regions: string[];
   origin_region: string | null;
+  verification_status: string | null;
 }
 
 function getAge(bd: string) {
@@ -214,6 +220,15 @@ export default function ProfilePage() {
     if (error) {
       alert(error.message);
     } else {
+      // Entfernte eigene Fotos auch aus dem Storage loeschen
+      const removedPaths = (profile.photos || [])
+        .filter(url => !allPhotos.includes(url))
+        .map(url => storagePathFromPublicUrl(url, 'photos'))
+        .filter((path): path is string => !!path && path.startsWith(`${profile.id}/`));
+      if (removedPaths.length > 0) {
+        await supabase.storage.from('photos').remove(removedPaths);
+      }
+
       // Refresh profile
       const { data } = await supabase
         .from('profiles')
@@ -285,8 +300,9 @@ export default function ProfilePage() {
               <span className="text-5xl">👤</span>
             </div>
           )}
-          <h2 className="text-2xl font-extrabold text-white mt-3">
-            {profile.first_name}, {age}
+          <h2 className="text-2xl font-extrabold text-white mt-3 flex items-center justify-center gap-2">
+            <span>{profile.first_name}, {age}</span>
+            <VerifiedBadge status={profile.verification_status} size={24} label={t('verified')} />
           </h2>
           {country && (
             <p className="text-white/90 mt-1">{country.flag} {country.name}{regionObj ? ` – ${regionObj.name}` : ''}</p>
@@ -337,6 +353,13 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
+
+        {/* Selfie-Verifizierung */}
+        <VerificationSection
+          userId={profile.id}
+          status={profile.verification_status}
+          onStatusChange={(status) => setProfile(prev => prev ? { ...prev, verification_status: status } : prev)}
+        />
 
         {/* Preferences */}
         <div className="px-6 py-5 border-b border-slate-800 space-y-3">
@@ -413,7 +436,9 @@ export default function ProfilePage() {
             <LogOut size={18} />
             {t('logout')}
           </button>
-          <p className="text-slate-600 text-xs mt-4">Version 1.0.0</p>
+          <DeleteAccountSection userId={profile.id} />
+          <LegalLinks className="flex gap-4 text-xs text-slate-500 mt-6" linkClassName="hover:text-slate-300 transition" />
+          <p className="text-slate-600 text-xs mt-3">Version 1.0.0</p>
         </div>
 
         <div className="h-20" />

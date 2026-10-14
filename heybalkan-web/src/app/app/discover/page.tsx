@@ -7,6 +7,8 @@ import { X, Heart, Star, RotateCcw } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useLanguage } from '@/hooks/useLanguage';
 import { COUNTRIES } from '@/lib/constants';
+import SafetyActions from '@/components/SafetyActions';
+import VerifiedBadge from '@/components/VerifiedBadge';
 
 interface Profile {
   id: string;
@@ -16,6 +18,7 @@ interface Profile {
   city: string;
   bio: string | null;
   photos: string[];
+  verification_status?: string | null;
 }
 
 function getAge(bd: string) {
@@ -166,6 +169,11 @@ export default function DiscoverPage() {
     }, 300);
   };
 
+  // Blockiertes Profil sofort entfernen; der Index zeigt dann aufs naechste
+  const removeProfile = (id: string) => {
+    setProfiles(prev => prev.filter(p => p.id !== id));
+  };
+
   const currentProfile = profiles[currentIndex];
 
   if (loading) {
@@ -230,10 +238,21 @@ export default function DiscoverPage() {
             </div>
           )}
 
+          {/* Melden / Blockieren */}
+          <div className="absolute top-3 right-3 z-10">
+            <SafetyActions
+              targetId={currentProfile.id}
+              targetName={currentProfile.first_name}
+              context="discover"
+              onBlocked={() => removeProfile(currentProfile.id)}
+            />
+          </div>
+
           {/* Info Overlay */}
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6 pt-16">
-            <h2 className="text-3xl font-extrabold text-white">
-              {currentProfile.first_name}, {age}
+            <h2 className="text-3xl font-extrabold text-white flex items-center gap-2">
+              <span>{currentProfile.first_name}, {age}</span>
+              <VerifiedBadge status={currentProfile.verification_status} size={26} label={t('verified')} />
             </h2>
             {country && (
               <p className="text-white/90 text-lg mt-1">{country.flag} {country.name}</p>

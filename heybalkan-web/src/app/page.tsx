@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Heart, Users, Shield, ArrowRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { LEGAL_LINKS } from '@/components/LegalLinks';
 
 export default function Home() {
   const router = useRouter();
@@ -309,11 +310,13 @@ export default function Home() {
           <p className="text-sm text-center md:text-left">
             &copy; 2026 Hey Balkan. Made with ❤️ in Switzerland.
           </p>
-          <div className="flex gap-6">
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
             <a href="#" className="hover:text-white transition-colors">Instagram</a>
             <a href="#" className="hover:text-white transition-colors">TikTok</a>
-            <a href="#" className="hover:text-white transition-colors">Kontakt</a>
-            <a href="#" className="hover:text-white transition-colors">Impressum</a>
+            <Link href="/impressum#kontakt" className="hover:text-white transition-colors">Kontakt</Link>
+            {LEGAL_LINKS.map(l => (
+              <Link key={l.href} href={l.href} className="hover:text-white transition-colors">{l.label}</Link>
+            ))}
           </div>
         </div>
       </footer>

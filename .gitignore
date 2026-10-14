@@ -1,2 +1,7 @@
 node_modules/
 dist/
+
+# Zugangsdaten nie committen
+.env
+.env.*
+!.env.example

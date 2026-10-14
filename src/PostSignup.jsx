@@ -434,7 +434,7 @@ export default function PostSignup({ email, lang, supabase }) {
         {/* Footer */}
         <div className="text-center mt-8 text-white/40 text-sm">
           <span className="text-xl">👋</span>
-          <p className="mt-1">Hey Balkan – {lang === 'de' ? 'Spring' : lang === 'sr' ? 'Proljece' : lang === 'sq' ? 'Pranvera' : 'Spring'} 2026</p>
+          <p className="mt-1">Hey Balkan – {lang === 'de' ? 'Bald verfuegbar' : lang === 'sr' ? 'Uskoro' : lang === 'sq' ? 'Se shpejti' : 'Launching soon'}</p>
         </div>
       </div>
     </div>
