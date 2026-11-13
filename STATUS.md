@@ -44,6 +44,7 @@ Solange die Hardening-Migrationen nicht gelaufen sind, gilt: Mit dem öffentlich
 
 ## Getroffene Entscheidungen
 
+- **13.11.: Nächste Aufgaben (vom User gewählt, in dieser Reihenfolge):** (1) User trägt `DATABASE_URL` ein, danach DB-Prüfung/Test/Migrationen; (2) **Entblocken in der App**: Liste "Blockierte Personen" im Profil mit Entblocken-Knopf (DELETE-Policy auf `blocks` existiert, keine neue Migration nötig); (3) **Texte übersetzen**: restliche fest deutsche UI-Texte in alle 4 Sprachen (siehe `HANDOVER.md` Abschnitt 10). Fake-Testimonials: vom User vorerst **nicht** zum Entfernen freigegeben. Punkte 2 und 3 sind noch nicht begonnen.
 - **DB-Zugang:** über `heybalkan-web/.env.local`, Runner mit `npm run migrate`
 - **Hardening-Migrationen:** sofort ausführen, sobald DB-Zugang da ist. Bis zum Deploy des neuen Branches fallen auf dem Live-Stand die Porodica-Einladungslinks und die Wartelisten-Anmeldung der alten Landing aus. Der eingeloggte App-Bereich ist nicht betroffen.
 
