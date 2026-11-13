@@ -297,7 +297,7 @@ Falls `db-check` Fake-Accounts zeigt (`@heybalkan.fake`, IDs `a0000001-…` bzw.
 Liegt untracked in `supabase/dev-seeds/`. Enthält ein Demo-Passwort für 1000 Accounts. Committen ist nur unbedenklich, wenn diese Accounts **nicht** in Produktion existieren (siehe 7.6). Dann committen, die Schutzabfrage ist drin. Andernfalls erst nach dem Löschen committen oder den User fragen.
 
 ### 7.8 `task-summary.md` aktualisieren
-Steht noch auf dem Stand vom März 2026 (Schritt 12 des Auftrags). Neu schreiben: Launch-Readiness-Funktionen, neue Dateien, Migrationsablauf (`npm run migrate`), Moderation (Meldungen, Verifizierungen), offene Punkte, Go-Live-Checkliste. Den Domain-Status korrigieren: "Domain registrieren" ist weiterhin offen.
+Am 13.11.2026 neu geschrieben (Chronik, Dateien, nächste Schritte, Go-Live). Nach den DB-Schritten das Ergebnis nachtragen: welche Migrationen gelaufen sind und ob Fake-Daten entfernt wurden.
 
 ### 7.9 Commit und Push
 - `launch-readiness` ist seit dem 11.11.2026 auf GitHub (Schritt 13 des Auftrags). Weitere Commits auf diesen Branch pushen, **nicht** in `main` mergen.

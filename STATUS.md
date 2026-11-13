@@ -1,6 +1,6 @@
 # Hey Balkan – Status Launch-Readiness
 
-**Stand:** 11. November 2026 (Code seit 21.10. unverändert, weiter blockiert durch fehlende `DATABASE_URL`)
+**Stand:** 13. November 2026 (`task-summary.md` aktualisiert; weiter blockiert durch fehlende `DATABASE_URL`)
 **Übergabe an Codex:** vorbereitet am 11.11.2026, siehe **`HANDOVER.md`** (vollständiger Kontext, Ablauf, Risiken). Prüfskripte liegen in `supabase/checks/`.
 **Übergabe 25.10.:** Arbeit aus einem anderen Account geprüft. Weder im Repo, auf GitHub, in Vercel noch in lokalen Sessions sind Änderungen zu finden.
 **Branch:** `launch-readiness` (basiert auf `codex/security-launch-hardening`): Feature-Commit `b7a23f4` + Übergabe-Commit, **auf GitHub gepusht (11.11.)**, nicht in `main`
@@ -37,7 +37,7 @@ Solange die Hardening-Migrationen nicht gelaufen sind, gilt: Mit dem öffentlich
 | 9 | Landing: "Coming Soon – Frühling 2026" ersetzen | ✅ alle 4 Sprachen |
 | 10 | Neue SQL als eigene Migration, in `migrate.mjs` | ✅ `add-launch-readiness.sql` |
 | 11 | Build + Lint, lokal testen | ✅ Build/Lint fehlerfrei (zuletzt 11.11.), öffentliche Seiten im Browser geprüft; eingeloggte Abläufe ⏳ |
-| 12 | `task-summary.md` aktualisieren | ⏳ nach DB-Schritten |
+| 12 | `task-summary.md` aktualisieren | ✅ 13.11. (nach den DB-Schritten Ergebnis nachtragen) |
 | 13 | Branch pushen, Go-Live-Schritte zeigen | ✅ gepusht (11.11.); Go-Live-Checkliste in `HANDOVER.md` 7.10, mit dem User durchgehen nach den DB-Schritten |
 
 ---
