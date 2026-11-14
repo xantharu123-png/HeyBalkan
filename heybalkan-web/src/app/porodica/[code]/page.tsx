@@ -4,8 +4,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, Send, SkipForward, ArrowLeft } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
-import { COUNTRIES } from '@/lib/constants';
+import { COUNTRIES, APP_LANGUAGES } from '@/lib/constants';
 import { useParams } from 'next/navigation';
+import { useLanguage } from '@/hooks/useLanguage';
+import type { Locale } from '@/i18n/translations';
 
 // Use the anon client (no auth needed)
 const supabase = createClient(
@@ -91,14 +93,26 @@ export default function FamilyBrowsePage() {
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
   const [showSentToast, setShowSentToast] = useState(false);
   const [suggestCount, setSuggestCount] = useState(0);
-  const [lang] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('heybalkan-lang') || 'de';
-    }
-    return 'de';
-  });
+  const { t, language, setLanguage } = useLanguage();
 
-  const rl = (key: string) => RELATION_LABELS[lang]?.[key] || RELATION_LABELS['de'][key] || key;
+  const rl = (key: string) => RELATION_LABELS[language]?.[key] || RELATION_LABELS['de'][key] || key;
+
+  // Familienmitglieder oeffnen den Link meist auf dem eigenen Handy: Sprache direkt waehlbar
+  const languageSwitch = (
+    <div className="flex justify-center gap-1 mb-6">
+      {APP_LANGUAGES.map(l => (
+        <button
+          key={l.code}
+          onClick={() => setLanguage(l.code as Locale)}
+          className={`px-2 py-1 rounded text-xs font-medium transition ${
+            language === l.code ? 'bg-white text-indigo-600' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          {l.flag}
+        </button>
+      ))}
+    </div>
+  );
 
   const loadData = useCallback(async () => {
     const { data: inviteData, error: inviteError } = await supabase
@@ -195,7 +209,7 @@ export default function FamilyBrowsePage() {
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-slate-400">Loading...</p>
+          <p className="text-slate-400">{t('loading')}</p>
         </div>
       </div>
     );
@@ -210,8 +224,9 @@ export default function FamilyBrowsePage() {
         <div className="text-center max-w-sm">
           <p className="text-6xl mb-4">{'\u{1F6AB}'}</p>
           <h1 className="text-2xl font-bold text-white mb-2">Oops!</h1>
-          <p className="text-slate-400">Dieser Einladungslink ist ungueltig oder abgelaufen.</p>
-          <p className="text-slate-500 text-sm mt-2">Bitte frage nach einem neuen Link.</p>
+          <p className="text-slate-400">{t('familyInvalidText')}</p>
+          <p className="text-slate-500 text-sm mt-2 mb-8">{t('familyInvalidHint')}</p>
+          {languageSwitch}
         </div>
       </div>
     );
@@ -224,6 +239,8 @@ export default function FamilyBrowsePage() {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center px-6">
         <div className="text-center max-w-sm">
+          {languageSwitch}
+
           {/* Logo */}
           <div className="mb-6">
             <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-sky-500 via-indigo-600 to-purple-700 flex items-center justify-center mb-4">
@@ -232,23 +249,22 @@ export default function FamilyBrowsePage() {
           </div>
 
           <h1 className="text-3xl font-extrabold text-white mb-2">
-            Hej {member.name}! {'\u{1F44B}'}
+            {t('familyWelcome').replace('{name}', member.name)} {'\u{1F44B}'}
           </h1>
 
           <p className="text-slate-300 text-lg mb-2">
-            {rl(member.relation_type)} von {owner.first_name}
+            {t('familyRelationOf').replace('{relation}', rl(member.relation_type)).replace('{user}', owner.first_name)}
           </p>
 
           <p className="text-slate-400 mb-8">
-            Hilf {owner.first_name} den perfekten Match zu finden!
-            Swipe durch Profile und schlage die besten vor.
+            {t('familyHelp').replace('{user}', owner.first_name)}
           </p>
 
           <button
             onClick={() => setViewState('browse')}
             className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-4 rounded-2xl font-bold text-lg hover:opacity-90 transition active:scale-95"
           >
-            {'\u{1F440}'} Profile anschauen
+            {'\u{1F440}'} {t('viewProfiles')}
           </button>
 
           <p className="text-slate-500 text-xs mt-4">
@@ -263,16 +279,17 @@ export default function FamilyBrowsePage() {
   // DONE SCREEN
   // ==========================================
   if (viewState === 'done' && member && owner) {
+    const [countBefore, countAfter] = t('familySuggestedCount').replace('{user}', owner.first_name).split('{count}');
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center px-6">
         <div className="text-center max-w-sm">
           <p className="text-6xl mb-4">{'\u{1F389}'}</p>
-          <h1 className="text-2xl font-bold text-white mb-2">Danke, {member.name}!</h1>
+          <h1 className="text-2xl font-bold text-white mb-2">{t('familyThanks').replace('{name}', member.name)}</h1>
           <p className="text-slate-300 mb-2">
-            Du hast <span className="text-purple-400 font-bold">{suggestCount}</span> Profile fuer {owner.first_name} vorgeschlagen.
+            {countBefore}<span className="text-purple-400 font-bold">{suggestCount}</span>{countAfter}
           </p>
           <p className="text-slate-400 text-sm mb-6">
-            {owner.first_name} wird benachrichtigt und kann deine Vorschlaege durchschauen.
+            {t('familyDoneHint').replace('{user}', owner.first_name)}
           </p>
           <button
             onClick={() => {
@@ -282,7 +299,7 @@ export default function FamilyBrowsePage() {
             }}
             className="bg-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-purple-500 transition"
           >
-            {'\u{1F504}'} Nochmal schauen
+            {'\u{1F504}'} {t('browseAgain')}
           </button>
         </div>
       </div>
@@ -300,8 +317,8 @@ export default function FamilyBrowsePage() {
         <div className="min-h-screen bg-slate-900 flex items-center justify-center px-6">
           <div className="text-center max-w-sm">
             <p className="text-6xl mb-4">{'\u{1F44D}'}</p>
-            <h1 className="text-2xl font-bold text-white mb-2">Keine weiteren Profile</h1>
-            <p className="text-slate-400">Schau spaeter nochmal vorbei!</p>
+            <h1 className="text-2xl font-bold text-white mb-2">{t('noMoreProfiles')}</h1>
+            <p className="text-slate-400">{t('checkBackLater')}</p>
           </div>
         </div>
       );
@@ -325,7 +342,7 @@ export default function FamilyBrowsePage() {
             <div className="flex items-center gap-2 bg-purple-600/20 px-3 py-1.5 rounded-full">
               <span className="text-sm">{RELATION_EMOJIS[member.relation_type]}</span>
               <span className="text-sm text-purple-300 font-medium">
-                Fuer {owner.first_name}
+                {t('forUser').replace('{user}', owner.first_name)}
               </span>
             </div>
             <div className="text-purple-400 text-sm font-bold">
@@ -385,7 +402,7 @@ export default function FamilyBrowsePage() {
                 <textarea
                   value={suggestMessage}
                   onChange={e => setSuggestMessage(e.target.value)}
-                  placeholder={`Nachricht an ${owner.first_name} (optional)...`}
+                  placeholder={t('messageToUser').replace('{user}', owner.first_name)}
                   className="w-full mt-3 p-3 rounded-xl bg-slate-800 text-white border border-purple-500/50 text-sm resize-none focus:outline-none"
                   rows={2}
                 />
@@ -420,7 +437,7 @@ export default function FamilyBrowsePage() {
           </div>
 
           <p className="text-center text-slate-500 text-xs mt-3">
-            {profileIndex + 1} / {profiles.length} Profile
+            {t('profilesCounter').replace('{current}', String(profileIndex + 1)).replace('{total}', String(profiles.length))}
           </p>
 
           {/* Toast */}
@@ -432,7 +449,7 @@ export default function FamilyBrowsePage() {
                 exit={{ opacity: 0, y: 20 }}
                 className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-purple-600 text-white px-6 py-3 rounded-xl font-medium shadow-lg"
               >
-                {'\u{1F49C}'} Vorgeschlagen!
+                {'\u{1F49C}'} {t('suggestionSent')}
               </motion.div>
             )}
           </AnimatePresence>

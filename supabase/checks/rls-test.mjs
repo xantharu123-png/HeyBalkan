@@ -183,6 +183,22 @@ try {
   r = await asAnon(() => tryQ(`select * from public._migrations limit 1`));
   ok(!r.ok || r.rows.length === 0, 'anon kann _migrations nicht lesen', JSON.stringify(r).slice(0, 200));
 
+  console.log('\n== Entblocken ==');
+  r = await as(A, () => tryQ(`select blocked_id, first_name from public.get_my_blocks()`));
+  ok(r.ok && r.rows.length === 1 && r.rows[0].blocked_id === B && r.rows[0].first_name === 'TestB', 'A sieht B in "Blockierte Personen" mit Namen', JSON.stringify(r));
+  r = await as(B, () => tryQ(`select * from public.get_my_blocks()`));
+  ok(r.ok && r.rows.length === 0, 'B sieht keine Blocks von anderen', JSON.stringify(r));
+  r = await asAnon(() => tryQ(`select * from public.get_my_blocks()`));
+  ok(!r.ok, 'anon kann get_my_blocks nicht aufrufen', JSON.stringify(r));
+  r = await as(B, () => tryQ(`delete from public.blocks where blocker_id = $1 and blocked_id = $2`, [A, B]));
+  ok(r.ok && r.rowCount === 0, 'B kann den Block von A nicht aufheben', JSON.stringify(r));
+  r = await as(A, () => tryQ(`delete from public.blocks where blocker_id = $1 and blocked_id = $2`, [A, B]));
+  ok(r.ok && r.rowCount === 1, 'A entblockt B', JSON.stringify(r));
+  r = await as(B, () => tryQ(`select count(*)::int n from public.profiles where id = $1`, [A]));
+  ok(r.rows[0].n === 1, 'Nach dem Entblocken: B sieht A wieder');
+  r = await as(A, () => tryQ(`select count(*)::int n from public.matches where id = $1`, [matchId]));
+  ok(r.rows[0].n === 1, 'Nach dem Entblocken: Match ist wieder da');
+
   console.log('\n== Konto loeschen ==');
   r = await asAnon(() => tryQ(`select public.delete_my_account()`));
   ok(!r.ok, 'anon kann delete_my_account nicht aufrufen', JSON.stringify(r));

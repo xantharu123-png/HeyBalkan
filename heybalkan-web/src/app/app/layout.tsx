@@ -54,7 +54,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="min-h-screen flex items-center justify-center bg-slate-900">
         <div className="text-center">
           <p className="text-4xl mb-2">👋</p>
-          <p className="text-slate-400">Loading...</p>
+          <p className="text-slate-400">{t('loading')}</p>
         </div>
       </div>
     );

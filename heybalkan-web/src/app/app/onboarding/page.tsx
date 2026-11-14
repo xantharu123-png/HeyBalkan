@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { X, Camera, ImagePlus } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useLanguage } from '@/hooks/useLanguage';
-import { COUNTRIES, DACH_COUNTRIES, SPOKEN_LANGUAGES, RELIGIONS, RELATIONSHIP_GOALS, REGIONS } from '@/lib/constants';
+import { COUNTRIES, DACH_COUNTRIES, SPOKEN_LANGUAGES, RELIGIONS, RELIGION_LABEL_KEYS, RELATIONSHIP_GOALS, REGIONS } from '@/lib/constants';
 import { MIN_AGE, parseBirthDate, getAgeFromIso } from '@/lib/age';
 
 const TOTAL_STEPS = 7;
@@ -215,7 +215,7 @@ export default function OnboardingPage() {
                   if (v.length > 5) v = v.slice(0, 5) + '.' + v.slice(5, 9);
                   setBirthDate(v);
                 }}
-                placeholder="TT.MM.JJJJ"
+                placeholder={t('birthDatePlaceholder')}
                 maxLength={10}
                 inputMode="numeric"
                 aria-invalid={birthDateError ? true : undefined}
@@ -247,9 +247,9 @@ export default function OnboardingPage() {
               </div>
             </div>
             <div>
-              <label className="block text-slate-200 font-semibold mb-2">Ich suche...</label>
+              <label className="block text-slate-200 font-semibold mb-2">{t('lookingForLabel')}</label>
               <div className="flex gap-3">
-                {[{ key: 'female', label: 'Frauen' }, { key: 'male', label: 'Maenner' }, { key: 'both', label: 'Beide' }].map(g => (
+                {[{ key: 'female', label: t('lookingWomen') }, { key: 'male', label: t('lookingMen') }, { key: 'both', label: t('lookingBoth') }].map(g => (
                   <button
                     key={g.key}
                     onClick={() => setLookingFor(g.key)}
@@ -291,7 +291,7 @@ export default function OnboardingPage() {
             {/* Region Selection */}
             {originCountry && REGIONS[originCountry] && (
               <div>
-                <label className="block text-slate-200 font-semibold mb-3">Region / Stadt</label>
+                <label className="block text-slate-200 font-semibold mb-3">{t('regionCity')}</label>
                 <div className="space-y-2">
                   {REGIONS[originCountry].map(r => (
                     <button
@@ -339,7 +339,7 @@ export default function OnboardingPage() {
                 type="text"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                placeholder="z.B. Zuerich, Berlin, Wien..."
+                placeholder={t('cityPlaceholder')}
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
@@ -356,7 +356,7 @@ export default function OnboardingPage() {
                         : 'bg-slate-800 text-slate-300 border border-slate-700 hover:border-slate-500'
                     }`}
                   >
-                    {c.flag} {c.name}
+                    {c.flag} {t(`country${c.code}`)}
                   </button>
                 ))}
               </div>
@@ -380,7 +380,7 @@ export default function OnboardingPage() {
                         : 'bg-slate-800 text-slate-300 border border-slate-700 hover:border-slate-500'
                     }`}
                   >
-                    {r}
+                    {t(RELIGION_LABEL_KEYS[r] || r)}
                   </button>
                 ))}
               </div>
@@ -470,7 +470,7 @@ export default function OnboardingPage() {
                         : 'bg-slate-800 text-slate-300 border border-slate-700 hover:border-slate-500'
                     }`}
                   >
-                    {r}
+                    {t(RELIGION_LABEL_KEYS[r] || r)}
                   </button>
                 ))}
               </div>
@@ -509,9 +509,9 @@ export default function OnboardingPage() {
               {/* Regionen fuer ausgewaehlte Laender */}
               {prefOrigins.length > 0 && (
                 <div className="mt-4">
-                  <label className="block text-slate-200 font-semibold mb-2">Regionen (optional)</label>
+                  <label className="block text-slate-200 font-semibold mb-2">{t('regionsOptional')}</label>
                   <p className="text-slate-400 text-xs mb-3">
-                    {prefRegions.length === 0 ? 'Alle Regionen' : `${prefRegions.length} Regionen ausgewaehlt`}
+                    {prefRegions.length === 0 ? t('allRegions') : `${prefRegions.length} ${t('selectedRegions')}`}
                   </p>
                   {prefOrigins.map(countryCode => {
                     const country = COUNTRIES.find(c => c.code === countryCode);
@@ -562,7 +562,7 @@ export default function OnboardingPage() {
             <div className="grid grid-cols-3 gap-3">
               {photos.map((photo, i) => (
                 <div key={i} className="relative aspect-[3/4] rounded-xl overflow-hidden group">
-                  <img src={photo.preview} alt={`Foto ${i + 1}`} className="w-full h-full object-cover" />
+                  <img src={photo.preview} alt={`${t('photo')} ${i + 1}`} className="w-full h-full object-cover" />
                   <button
                     onClick={() => removePhoto(i)}
                     className="absolute top-1.5 right-1.5 w-7 h-7 bg-black/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition hover:bg-red-500"
@@ -571,7 +571,7 @@ export default function OnboardingPage() {
                   </button>
                   {i === 0 && (
                     <div className="absolute bottom-0 left-0 right-0 bg-indigo-600/80 text-white text-[10px] font-bold text-center py-1">
-                      Hauptfoto
+                      {t('mainPhoto')}
                     </div>
                   )}
                 </div>
@@ -593,7 +593,7 @@ export default function OnboardingPage() {
                 className="w-full py-4 bg-indigo-600/20 border border-indigo-500/30 rounded-xl text-indigo-400 font-semibold hover:bg-indigo-600/30 transition flex items-center justify-center gap-2"
               >
                 <Camera size={20} />
-                Fotos auswaehlen
+                {t('choosePhotos')}
               </button>
             )}
           </div>
@@ -603,7 +603,7 @@ export default function OnboardingPage() {
         {step === 7 && (
           <div className="space-y-4">
             <label className="block text-slate-200 font-semibold">{t('writeBio')}</label>
-            <p className="text-slate-400 text-sm">Erzaehl etwas ueber dich – was machst du gerne, was ist dir wichtig?</p>
+            <p className="text-slate-400 text-sm">{t('bioHint')}</p>
             <textarea
               value={bio}
               onChange={(e) => setBio(e.target.value)}
@@ -639,7 +639,7 @@ export default function OnboardingPage() {
             {loading ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                {step === TOTAL_STEPS ? 'Profil wird erstellt...' : '...'}
+                {step === TOTAL_STEPS ? t('creatingProfile') : '...'}
               </span>
             ) : (
               step === TOTAL_STEPS ? t('letsGo') : t('next')

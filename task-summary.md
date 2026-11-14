@@ -38,6 +38,8 @@ Aktueller Arbeitsstand und Blocker: siehe `STATUS.md`. Vollständiger Kontext f�
 - Foto-Storage: Hochladen, Ändern und Löschen nur noch im eigenen Ordner
 - **Rechtsseiten** `/impressum`, `/datenschutz`, `/agb` (DSG + DSGVO), Footer-Links, zwei Zustimmungs-Checkboxen bei der Registrierung
 - Landing: "Coming Soon – Frühling 2026" ersetzt (alle 4 Sprachen)
+- **Entblocken** im Profil (Liste "Blockierte Personen")
+- App vollständig in allen 4 Sprachen, auch die Porodica-Einladungsseite (mit eigener Sprachauswahl)
 - Fake-Daten-Skripte nach `supabase/dev-seeds/` verschoben, nicht mehr in den Migrationen
 - Neue Migration `add-launch-readiness.sql`. Der Runner läuft jetzt pro Datei in einer Transaktion und stoppt beim ersten Fehler.
 - `STATUS.md`, `HANDOVER.md`, `AGENTS.md`/`CLAUDE.md`, Prüfskripte in `supabase/checks/`
@@ -91,7 +93,7 @@ Komplette Go-Live-Checkliste: `HANDOVER.md` Abschnitt 7.10.
 
 ### Später
 - [ ] Domain registrieren (heybalkan.com ist frei)
-- [ ] Entblocken in der App, Moderations-Oberfläche
+- [ ] Moderations-Oberfläche (Meldungen, Verifizierungen)
 - [ ] Profildaten für andere User auf das Nötige beschränken
 - [ ] Push-Notifications, Bezahlfunktion (bewusst noch nicht)
 - [ ] Pitch Deck

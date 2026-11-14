@@ -23,6 +23,15 @@ export const RELIGIONS = [
   'Orthodox', 'Katholisch', 'Islam', 'Andere', 'Keine Angabe',
 ];
 
+// Werte bleiben in der DB deutsch, angezeigt wird die Uebersetzung: t(RELIGION_LABEL_KEYS[r] || r)
+export const RELIGION_LABEL_KEYS: Record<string, string> = {
+  Orthodox: 'religionOrthodox',
+  Katholisch: 'religionCatholic',
+  Islam: 'religionIslam',
+  Andere: 'religionOther',
+  'Keine Angabe': 'religionNone',
+};
+
 export const RELATIONSHIP_GOALS = [
   { key: 'serious', emoji: '\u{1F48D}', de: 'Feste Beziehung', en: 'Serious relationship', sr: 'Ozbiljna veza', sq: 'Lidhje serioze' },
   { key: 'casual', emoji: '\u{1F60A}', de: 'Etwas Lockeres', en: 'Something casual', sr: 'Nesto opusteno', sq: 'Dicka e lehte' },

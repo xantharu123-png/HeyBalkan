@@ -81,7 +81,7 @@ export default function ChatListPage() {
     const d = new Date(dateStr);
     const now = new Date();
     const diff = (now.getTime() - d.getTime()) / 60000;
-    if (diff < 1) return 'jetzt';
+    if (diff < 1) return t('justNow');
     if (diff < 60) return `${Math.floor(diff)}m`;
     if (diff < 1440) return `${Math.floor(diff / 60)}h`;
     return `${Math.floor(diff / 1440)}d`;
@@ -127,7 +127,7 @@ export default function ChatListPage() {
                   <p className="font-bold text-white">{c.user?.first_name || 'User'}</p>
                   {c.lastMessage ? (
                     <p className="text-slate-400 text-sm truncate">
-                      {isMe ? 'Du: ' : ''}{c.lastMessage.content}
+                      {isMe ? t('youPrefix') : ''}{c.lastMessage.content}
                     </p>
                   ) : (
                     <p className="text-indigo-400 text-sm font-medium">{t('newMatch')} 👋</p>

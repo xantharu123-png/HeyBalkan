@@ -349,7 +349,7 @@ export default function PorodicaPage() {
       <div className="flex items-center justify-center h-[80vh]">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-slate-400">Loading...</p>
+          <p className="text-slate-400">{t('loading')}</p>
         </div>
       </div>
     );
@@ -372,7 +372,7 @@ export default function PorodicaPage() {
         <input
           value={newName}
           onChange={e => setNewName(e.target.value)}
-          placeholder="z.B. Mama Dragica"
+          placeholder={t('familyNamePlaceholder')}
           className="w-full p-3 rounded-xl bg-slate-800 text-white border border-slate-700 mb-4 focus:border-purple-500 focus:outline-none"
         />
 
@@ -637,7 +637,7 @@ export default function PorodicaPage() {
                       onClick={() => handleSuggestionAction(suggestion.id, 'liked')}
                       className="flex-1 py-3 text-green-400 text-sm font-medium hover:bg-green-500/10 transition flex items-center justify-center gap-1"
                     >
-                      <Heart size={16} /> Like
+                      <Heart size={16} /> {t('like')}
                     </button>
                   </div>
                 </motion.div>
@@ -684,7 +684,7 @@ export default function PorodicaPage() {
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <Users size={18} className="text-purple-400" />
-            Familie
+            {t('family')}
           </h2>
           <button
             onClick={() => setViewMode('add-member')}
@@ -785,27 +785,27 @@ export default function PorodicaPage() {
 
       {/* How it works */}
       <div className="bg-slate-800/30 rounded-2xl p-5 border border-slate-700/50">
-        <h3 className="text-white font-bold mb-3">{'\u{2139}\u{FE0F}'} So funktioniert&apos;s</h3>
+        <h3 className="text-white font-bold mb-3">{'\u{2139}\u{FE0F}'} {t('howItWorks')}</h3>
         <div className="space-y-3 text-sm text-slate-400">
           <div className="flex gap-3">
             <span className="text-purple-400 font-bold">1.</span>
-            <span>Fuege Familienmitglieder hinzu (Mama, Papa, etc.)</span>
+            <span>{t('porodicaStep1')}</span>
           </div>
           <div className="flex gap-3">
             <span className="text-purple-400 font-bold">2.</span>
-            <span>Teile den Einladungslink per WhatsApp, SMS oder persoenlich</span>
+            <span>{t('porodicaStep2')}</span>
           </div>
           <div className="flex gap-3">
             <span className="text-purple-400 font-bold">3.</span>
-            <span>Dein Familienmitglied oeffnet den Link auf dem eigenen Handy und swipt</span>
+            <span>{t('porodicaStep3')}</span>
           </div>
           <div className="flex gap-3">
             <span className="text-purple-400 font-bold">4.</span>
-            <span>Die Vorschlaege erscheinen in deinem Posteingang</span>
+            <span>{t('porodicaStep4')}</span>
           </div>
           <div className="flex gap-3">
             <span className="text-purple-400 font-bold">5.</span>
-            <span>Du entscheidest ob du Liken oder Skippen willst</span>
+            <span>{t('porodicaStep5')}</span>
           </div>
         </div>
       </div>

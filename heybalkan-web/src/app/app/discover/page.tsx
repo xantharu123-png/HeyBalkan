@@ -181,7 +181,7 @@ export default function DiscoverPage() {
       <div className="flex items-center justify-center h-[80vh]">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-slate-400">Loading profiles...</p>
+          <p className="text-slate-400">{t('loadingProfiles')}</p>
         </div>
       </div>
     );
@@ -198,7 +198,7 @@ export default function DiscoverPage() {
             onClick={() => { setLoading(true); loadProfiles(userId); }}
             className="flex items-center gap-2 mx-auto bg-indigo-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-indigo-500 transition"
           >
-            <RotateCcw size={18} /> Refresh
+            <RotateCcw size={18} /> {t('refresh')}
           </button>
         </div>
       </div>

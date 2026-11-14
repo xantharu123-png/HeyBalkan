@@ -5,12 +5,13 @@ import { useRouter } from 'next/navigation';
 import { LogOut, Shield, Bell, HelpCircle, MessageSquare, Heart, X, ImagePlus, Pencil, Check } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useLanguage } from '@/hooks/useLanguage';
-import { COUNTRIES, DACH_COUNTRIES, SPOKEN_LANGUAGES, RELIGIONS, RELATIONSHIP_GOALS, APP_LANGUAGES, REGIONS } from '@/lib/constants';
+import { COUNTRIES, DACH_COUNTRIES, SPOKEN_LANGUAGES, RELIGIONS, RELIGION_LABEL_KEYS, RELATIONSHIP_GOALS, APP_LANGUAGES, REGIONS } from '@/lib/constants';
 import type { Locale } from '@/i18n/translations';
 import { storagePathFromPublicUrl } from '@/lib/storage';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import VerificationSection from '@/components/VerificationSection';
 import DeleteAccountSection from '@/components/DeleteAccountSection';
+import BlockedUsersSection from '@/components/BlockedUsersSection';
 import LegalLinks from '@/components/LegalLinks';
 
 interface Profile {
@@ -308,7 +309,7 @@ export default function ProfilePage() {
             <p className="text-white/90 mt-1">{country.flag} {country.name}{regionObj ? ` – ${regionObj.name}` : ''}</p>
           )}
           {profile.city && dachCountry && (
-            <p className="text-white/70 text-sm">📍 {profile.city}, {dachCountry.flag} {dachCountry.name}</p>
+            <p className="text-white/70 text-sm">📍 {profile.city}, {dachCountry.flag} {t(`country${dachCountry.code}`)}</p>
           )}
         </div>
 
@@ -333,7 +334,7 @@ export default function ProfilePage() {
 
         {/* Info */}
         <div className="px-6 py-5 border-b border-slate-800 space-y-3">
-          <h3 className="text-white font-semibold">Info</h3>
+          <h3 className="text-white font-semibold">{t('info')}</h3>
           {profile.spoken_languages?.length > 0 && (
             <div className="flex items-center gap-2 text-sm">
               <MessageSquare size={16} className="text-slate-400" />
@@ -349,7 +350,7 @@ export default function ProfilePage() {
           {profile.religion && (
             <div className="flex items-center gap-2 text-sm">
               <span className="text-slate-400">🙏</span>
-              <span className="text-slate-300">{profile.religion}</span>
+              <span className="text-slate-300">{t(RELIGION_LABEL_KEYS[profile.religion] || profile.religion)}</span>
             </div>
           )}
         </div>
@@ -371,7 +372,7 @@ export default function ProfilePage() {
           <div className="flex items-center gap-2 text-sm">
             <span className="text-slate-400">🙏</span>
             <span className="text-slate-300">
-              {t('preferredReligion')}: {(profile.preferred_religion === 'egal' || !profile.preferred_religion) ? t('noPreference') : profile.preferred_religion}
+              {t('preferredReligion')}: {(profile.preferred_religion === 'egal' || !profile.preferred_religion) ? t('noPreference') : t(RELIGION_LABEL_KEYS[profile.preferred_religion] || profile.preferred_religion)}
             </span>
           </div>
           <div className="flex items-center gap-2 text-sm">
@@ -426,6 +427,9 @@ export default function ProfilePage() {
             </button>
           ))}
         </div>
+
+        {/* Blockierte Personen */}
+        <BlockedUsersSection userId={profile.id} />
 
         {/* Logout */}
         <div className="px-6 py-5">
@@ -486,7 +490,7 @@ export default function ProfilePage() {
                 </button>
                 {i === 0 && existingPhotos.length > 0 && (
                   <div className="absolute bottom-0 left-0 right-0 bg-indigo-600/80 text-white text-[10px] font-bold text-center py-1">
-                    Hauptfoto
+                    {t('mainPhoto')}
                   </div>
                 )}
               </div>
@@ -503,7 +507,7 @@ export default function ProfilePage() {
                   <X size={14} className="text-white" />
                 </button>
                 <div className="absolute bottom-0 left-0 right-0 bg-green-600/80 text-white text-[10px] font-bold text-center py-1">
-                  Neu
+                  {t('newPhoto')}
                 </div>
               </div>
             ))}
@@ -553,7 +557,7 @@ export default function ProfilePage() {
             type="text"
             value={city}
             onChange={(e) => setCity(e.target.value)}
-            placeholder="z.B. Zuerich, Berlin, Wien..."
+            placeholder={t('cityPlaceholder')}
             className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
@@ -571,7 +575,7 @@ export default function ProfilePage() {
                     : 'bg-slate-800 text-slate-300 border border-slate-700 hover:border-slate-500'
                 }`}
               >
-                {c.flag} {c.name}
+                {c.flag} {t(`country${c.code}`)}
               </button>
             ))}
           </div>
@@ -597,7 +601,7 @@ export default function ProfilePage() {
           </div>
           {originCountry && REGIONS[originCountry] && (
             <div className="mt-4">
-              <label className="block text-slate-200 font-semibold mb-2">Region / Stadt</label>
+              <label className="block text-slate-200 font-semibold mb-2">{t('regionCity')}</label>
               <div className="space-y-2">
                 {REGIONS[originCountry].map(r => (
                   <button
@@ -639,9 +643,9 @@ export default function ProfilePage() {
 
         {/* Looking For */}
         <div>
-          <label className="block text-slate-200 font-semibold mb-3">Ich suche...</label>
+          <label className="block text-slate-200 font-semibold mb-3">{t('lookingForLabel')}</label>
           <div className="flex gap-3">
-            {[{ key: 'female', label: 'Frauen' }, { key: 'male', label: 'Maenner' }, { key: 'both', label: 'Beide' }].map(g => (
+            {[{ key: 'female', label: t('lookingWomen') }, { key: 'male', label: t('lookingMen') }, { key: 'both', label: t('lookingBoth') }].map(g => (
               <button
                 key={g.key}
                 onClick={() => setLookingFor(g.key)}
@@ -671,7 +675,7 @@ export default function ProfilePage() {
                     : 'bg-slate-800 text-slate-300 border border-slate-700 hover:border-slate-500'
                 }`}
               >
-                {r}
+                {t(RELIGION_LABEL_KEYS[r] || r)}
               </button>
             ))}
           </div>
@@ -736,7 +740,7 @@ export default function ProfilePage() {
                       : 'bg-slate-800 text-slate-300 border border-slate-700 hover:border-slate-500'
                   }`}
                 >
-                  {r}
+                  {t(RELIGION_LABEL_KEYS[r] || r)}
                 </button>
               ))}
             </div>
@@ -775,9 +779,9 @@ export default function ProfilePage() {
             {/* Regionen fuer ausgewaehlte Laender */}
             {prefOrigins.length > 0 && (
               <div className="mt-4">
-                <label className="block text-slate-200 font-semibold mb-2">Regionen (optional)</label>
+                <label className="block text-slate-200 font-semibold mb-2">{t('regionsOptional')}</label>
                 <p className="text-slate-400 text-xs mb-3">
-                  {prefRegions.length === 0 ? 'Alle Regionen' : `${prefRegions.length} Regionen ausgewaehlt`}
+                  {prefRegions.length === 0 ? t('allRegions') : `${prefRegions.length} ${t('selectedRegions')}`}
                 </p>
                 {prefOrigins.map(countryCode => {
                   const ctry = COUNTRIES.find(c => c.code === countryCode);
@@ -848,7 +852,7 @@ export default function ProfilePage() {
             {saving ? (
               <>
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Speichern...
+                {t('saving')}
               </>
             ) : (
               <>

@@ -83,6 +83,29 @@ $$;
 REVOKE ALL ON FUNCTION public.is_blocked_with(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.is_blocked_with(uuid) TO authenticated;
 
+-- Liste "Blockierte Personen" im Profil. Die Profile sind per RLS ausgeblendet,
+-- daher liefert diese RPC nur fuer die eigenen Blocks den Vornamen mit.
+CREATE OR REPLACE FUNCTION public.get_my_blocks()
+RETURNS TABLE (
+  blocked_id uuid,
+  first_name text,
+  blocked_at timestamptz
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT b.blocked_id, p.first_name, b.created_at
+  FROM public.blocks b
+  LEFT JOIN public.profiles p ON p.id = b.blocked_id
+  WHERE b.blocker_id = auth.uid()
+  ORDER BY b.created_at DESC;
+$$;
+
+REVOKE ALL ON FUNCTION public.get_my_blocks() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_my_blocks() TO authenticated;
+
 -- Blockierte Profile sind fuer beide Seiten unsichtbar
 -- (Discover, Matches, Chat, Porodica-Vorschlaege).
 DROP POLICY IF EXISTS "Hide blocked profiles" ON public.profiles;

@@ -1,6 +1,6 @@
 # Hey Balkan – Status Launch-Readiness
 
-**Stand:** 13. November 2026 (`task-summary.md` aktualisiert; weiter blockiert durch fehlende `DATABASE_URL`)
+**Stand:** 14. November 2026 (Entblocken und Übersetzungen erledigt; weiter blockiert durch fehlende `DATABASE_URL`)
 **Übergabe an Codex:** vorbereitet am 11.11.2026, siehe **`HANDOVER.md`** (vollständiger Kontext, Ablauf, Risiken). Prüfskripte liegen in `supabase/checks/`.
 **Übergabe 25.10.:** Arbeit aus einem anderen Account geprüft. Weder im Repo, auf GitHub, in Vercel noch in lokalen Sessions sind Änderungen zu finden.
 **Branch:** `launch-readiness` (basiert auf `codex/security-launch-hardening`): Feature-Commit `b7a23f4` + Übergabe-Commit, **auf GitHub gepusht (11.11.)**, nicht in `main`
@@ -44,7 +44,7 @@ Solange die Hardening-Migrationen nicht gelaufen sind, gilt: Mit dem öffentlich
 
 ## Getroffene Entscheidungen
 
-- **13.11.: Nächste Aufgaben (vom User gewählt, in dieser Reihenfolge):** (1) User trägt `DATABASE_URL` ein, danach DB-Prüfung/Test/Migrationen; (2) **Entblocken in der App**: Liste "Blockierte Personen" im Profil mit Entblocken-Knopf (DELETE-Policy auf `blocks` existiert, keine neue Migration nötig); (3) **Texte übersetzen**: restliche fest deutsche UI-Texte in alle 4 Sprachen (siehe `HANDOVER.md` Abschnitt 10). Fake-Testimonials: vom User vorerst **nicht** zum Entfernen freigegeben. Punkte 2 und 3 sind noch nicht begonnen.
+- **13.11.: Nächste Aufgaben (vom User gewählt, in dieser Reihenfolge):** (1) User trägt `DATABASE_URL` ein, danach DB-Prüfung/Test/Migrationen; (2) **Entblocken in der App**: Liste "Blockierte Personen" im Profil mit Entblocken-Knopf (DELETE-Policy auf `blocks` existiert, keine neue Migration nötig); (3) **Texte übersetzen**: restliche fest deutsche UI-Texte in alle 4 Sprachen (siehe `HANDOVER.md` Abschnitt 10). Fake-Testimonials: vom User vorerst **nicht** zum Entfernen freigegeben. **14.11.: Punkte 2 und 3 erledigt** (Entblocken inkl. RPC `get_my_blocks` in `add-launch-readiness.sql`; App vollständig in 4 Sprachen, Porodica-Einladungsseite mit Sprachauswahl). Punkt 1 bleibt beim User.
 - **DB-Zugang:** über `heybalkan-web/.env.local`, Runner mit `npm run migrate`
 - **Hardening-Migrationen:** sofort ausführen, sobald DB-Zugang da ist. Bis zum Deploy des neuen Branches fallen auf dem Live-Stand die Porodica-Einladungslinks und die Wartelisten-Anmeldung der alten Landing aus. Der eingeloggte App-Bereich ist nicht betroffen.
 
@@ -85,7 +85,7 @@ Solange die Hardening-Migrationen nicht gelaufen sind, gilt: Mit dem öffentlich
 
 1. Nur lesend prüfen mit `supabase/checks/db-check.mjs`: `_migrations`, Policies, Storage, Anzahl Fake-Accounts und Profile unter 18
 1a. **Baseline:** bereits angewendete Alt-Migrationen nur in `_migrations` eintragen, nicht erneut ausführen (Details und Risiken: `HANDOVER.md` 7.3)
-2. Neue Migration mit `supabase/checks/rls-test.mjs` in einer Transaktion gegen die echte DB testen (3 Test-User, 42 Prüfungen), danach Rollback
+2. Neue Migration mit `supabase/checks/rls-test.mjs` in einer Transaktion gegen die echte DB testen (3 Test-User, 49 Prüfungen), danach Rollback
 3. Fehlende Migrationen ausführen (Hardening + `add-launch-readiness.sql`)
 4. Falls Fake-Daten in Produktion: dich fragen, ob sie gelöscht werden sollen
 5. `task-summary.md` aktualisieren, Branch pushen
@@ -120,6 +120,5 @@ Solange die Hardening-Migrationen nicht gelaufen sind, gilt: Mit dem öffentlich
 
 - Alle Profilfelder (inkl. Suchpräferenzen, Geburtsdatum) sind für jeden eingeloggten User per API lesbar. Besser später auf eine View oder RPC mit den nötigen Feldern einschränken.
 - Profilfotos liegen in einem öffentlichen Bucket (abrufbar, wer die URL kennt)
-- Keine Oberfläche zum Entblocken
 - `heybalkan-landing/` ist eine alte Kopie der Landing und enthält noch "Coming Soon – Spring 2026"
 - Nicht gemacht wie gewünscht: Domain, Bezahlfunktion, Push-Notifications

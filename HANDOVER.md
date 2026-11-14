@@ -128,6 +128,7 @@ Idempotent, kann mehrfach laufen. Läuft nach `harden-porodica-public-access.sql
   - `matches` SELECT: kein Block mit dem Gegenüber
   - `matches` INSERT: `Matches require mutual like`. Teilnehmer ist `auth.uid()`, nicht dieselbe Person, kein Block, Like/Super-Like in **beide** Richtungen. Das schliesst auch eine alte Lücke: Vorher durfte jeder eingeloggte User mit jedem ein Match anlegen und schreiben.
   - `porodica_suggestions` SELECT: kein Block mit dem vorgeschlagenen Profil.
+- `public.get_my_blocks()` (ergänzt am 14.11.): `SECURITY DEFINER`, liefert nur die eigenen Blocks mit Vorname und Datum. Nötig, weil die Profile Blockierter per RLS auch für die blockierende Person ausgeblendet sind. `EXECUTE` nur für `authenticated`.
 - `messages` braucht keine eigene Policy. Die bestehenden Policies prüfen per Subquery auf `matches`, und deren RLS greift dort mit.
 
 **2. Melden:** `public.reports` mit `reporter_id` (Default `auth.uid()`, `ON DELETE SET NULL`), `reported_id` (`SET NULL`), `match_id`, `context` (`discover`/`match`/`chat`/`other`), `reason` (`fake_profile`, `inappropriate_content`, `harassment`, `spam_scam`, `underage`, `other`), `details` (≤ 1000 Zeichen), `status` (`open`/`in_review`/`resolved`/`dismissed`), `admin_note`, `reviewed_at`. RLS: nur INSERT für die eigene Person, `status` muss `open` sein. **Kein SELECT für User**, die Moderation läuft im Supabase-Dashboard.
@@ -162,6 +163,7 @@ Idempotent, kann mehrfach laufen. Läuft nach `harden-porodica-public-access.sql
 | Datei | Änderung |
 |-------|----------|
 | `components/SafetyActions.tsx` (neu) | Button (`MoreHorizontal`) + Bottom-Sheet: Menü → "Melden" (Grund, Details, Checkbox "auch blockieren", standardmässig an) oder "Blockieren" (Bestätigung) → Erfolgsmeldung. Insert in `reports`/`blocks`. `23505` (schon blockiert) zählt als Erfolg. `onBlocked` wird beim Schliessen aufgerufen. Props: `targetId`, `targetName`, `context`, `matchId?`, `onBlocked?`, `className?`. |
+| `components/BlockedUsersSection.tsx` (neu, 14.11.) | Profilbereich "Blockierte Personen": Liste per `rpc('get_my_blocks')`, "Entblocken" mit Bestätigung (Hinweis: ein bestehender Match samt Chat kommt zurück), DELETE auf `blocks`. Fehlt die RPC (Migration nicht gelaufen), wird eine leere Liste gezeigt. |
 | `components/VerifiedBadge.tsx` (neu) | `BadgeCheck`-Icon, nur bei `status === 'verified'`. |
 | `components/VerificationSection.tsx` (neu) | Profilbereich: Status-Anzeige. Bei `none`/`rejected` öffnet ein Button ein Modal mit Anleitung (Peace-Zeichen), `<input capture="user">`, Vorschau, Upload nach `verifications/<uid>/selfie_<ts>.<ext>`, dann `rpc('request_verification')`. Limit 10 MB. |
 | `components/DeleteAccountSection.tsx` (neu) | "Konto löschen" mit Bestätigungswort je Sprache (`LOESCHEN`/`DELETE`/`OBRISI`/`FSHIJ`). Ablauf: `removeOwnFolder('photos')`, `removeOwnFolder('verifications')`, `rpc('delete_my_account')`, `signOut({ scope: 'local' })`, Abschluss-Screen. Bricht bei Fehlern ab. |
@@ -178,7 +180,9 @@ Idempotent, kann mehrfach laufen. Läuft nach `harden-porodica-public-access.sql
 | `app/app/chat/[matchId]/page.tsx` | Lädt das Match (`maybeSingle`) und das Partnerprofil. Ist eines nicht sichtbar (blockiert/gelöscht), erscheint "Chat nicht verfügbar". Header mit Foto, Name, Badge, `SafetyActions`. Beim Blockieren geht es zurück zu `/app/chat`. Schlägt das Senden fehl, wird die optimistische Nachricht zurückgenommen und der Text wiederhergestellt. |
 | `app/app/porodica/page.tsx` | Vorschläge ohne sichtbares Profil (blockiert/gelöscht) werden ausgefiltert. |
 | `app/app/profile/page.tsx` | Badge im Header, `VerificationSection` (zwischen Info und Präferenzen), `DeleteAccountSection` + Rechtslinks unter "Abmelden". Beim Speichern werden **entfernte eigene Fotos auch aus dem Storage gelöscht**. |
-| `i18n/translations.ts` | 53 neue Keys je Sprache, in allen 4 Sprachen (u.a. `acceptTerms`, `acceptSensitive`, `report*`, `reason*`, `block*`, `deleteAccount*`, `verif*`, `errorUnderage`, `errorInvalidDate`). |
+| `lib/constants.ts` | `RELIGION_LABEL_KEYS`: Religionswerte bleiben in der DB deutsch, die Anzeige läuft über `t(RELIGION_LABEL_KEYS[r] \|\| r)`. |
+| `app/porodica/[code]/page.tsx` (14.11.) | Komplett übersetzt, nutzt jetzt `useLanguage()`. Vorher las die Seite die Sprache aus dem falschen Key `heybalkan-lang` und war praktisch immer deutsch. Sprachauswahl (DE/EN/SR/SQ) oben auf der Begrüssungs- und Fehlerseite. Der falsche Satz "… wird benachrichtigt" (es gibt keine Benachrichtigungen) ist ersetzt. |
+| `i18n/translations.ts` | 53 neue Keys je Sprache (14.10.) + 57 weitere (14.11.: Entblocken und alle bisher fest deutschen Texte), in allen 4 Sprachen (u.a. `acceptTerms`, `acceptSensitive`, `report*`, `reason*`, `block*`, `deleteAccount*`, `verif*`, `errorUnderage`, `errorInvalidDate`). |
 
 ### 5.4 Landing (Root `src/`)
 - `src/translations.js`: Das `hero.badge` "Coming Soon – Frühling 2026" ist in allen 4 Sprachen ersetzt durch "Bald verfuegbar – sichere dir deinen Platz" / "Launching soon – save your spot" / "Uskoro – osiguraj svoje mjesto" / "Se shpejti – siguro vendin tend".
@@ -264,7 +268,7 @@ node --env-file=.env.local ../supabase/checks/rls-test.mjs \
   ../harden-porodica-public-access.sql \
   ../add-launch-readiness.sql
 ```
-Nur die Dateien angeben, die laut 7.3 noch offen sind. Das Skript legt 3 Test-User an und prüft 42 Fälle: 18+, Verifizierung, Foto-Storage, Matches nur bei gegenseitigem Like, Melden, Blockieren (Profil/Match/Nachrichten/neues Match unsichtbar bzw. unmöglich), Porodica, anon-Lesesperren, Konto löschen. Danach rollt es **alles** zurück. Es hält kurz Sperren auf Kerntabellen, also nicht unter Last starten.
+Nur die Dateien angeben, die laut 7.3 noch offen sind. Das Skript legt 3 Test-User an und prüft 49 Fälle: 18+, Verifizierung, Foto-Storage, Matches nur bei gegenseitigem Like, Melden, Blockieren (Profil/Match/Nachrichten/neues Match unsichtbar bzw. unmöglich), Porodica, Entblocken (`get_my_blocks`, nur eigene Blocks aufhebbar, Match kehrt zurück), anon-Lesesperren, Konto löschen. Danach rollt es **alles** zurück. Es hält kurz Sperren auf Kerntabellen, also nicht unter Last starten.
 - Wenn einzelne Tests wegen des **Testcodes** scheitern (z.B. weil direktes `INSERT` in `storage.objects` blockiert ist), den Test anpassen, nicht die Migration aufweichen.
 - Bei echten Fehlern in der Migration: korrigieren, erneut testen.
 
@@ -353,12 +357,11 @@ Am 13.11.2026 neu geschrieben (Chronik, Dateien, nächste Schritte, Go-Live). Na
 
 - Alle Profilspalten (inkl. Geburtsdatum, Präferenzen) sind für jeden eingeloggten User per API lesbar (`profiles` SELECT `using (true)`). Besser: View/RPC mit nötigen Feldern.
 - Bucket `photos` ist public. Wer die URL kennt, sieht das Foto, auch nach einem Block.
-- Keine UI zum Entblocken. Die DB-Policy für DELETE existiert.
 - Keine Admin-Oberfläche für Moderation und Verifizierung, alles läuft über das Supabase-Dashboard.
 - Kein Rate-Limit bzw. Captcha für Warteliste, Signup, Meldungen.
 - `get_waitlist_entry(email)` gibt jedem, der eine E-Mail kennt, Referral-Code, Position, Name und Bio zurück. Bewusstes Design aus dem Security-Branch, aber erwähnenswert.
 - Profil-Einstellungen "Benachrichtigungen", "Privatsphäre" und "Hilfe" sind Buttons ohne Funktion.
-- Einzelne hartcodierte deutsche Texte in der UI (z.B. "Du: " und "jetzt" in der Chat-Liste, "Ich suche…"/"Frauen"/"Maenner" im Onboarding/Profil, "Hauptfoto").
+- Die Marketing-Startseite der Web-App (`app/page.tsx`) und die Rechtsseiten sind bewusst nur deutsch. Die App selbst ist seit dem 14.11. vollständig in allen 4 Sprachen. `SPOKEN_LANGUAGES` und `REGIONS` zeigen Eigennamen.
 - `heybalkan-landing/` ist eine alte Kopie mit "Coming Soon – Spring 2026".
 - Nicht gemacht wie gewünscht: Domain, Bezahlfunktion, Push-Notifications.
 
